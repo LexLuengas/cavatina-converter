@@ -26,3 +26,15 @@ class Splitter
 
     get_str: ->
         return "space (#{@length}/4)"
+
+class Newline
+    constructor: ->
+
+    get_str: ->
+        return 'newline'
+
+class Key
+    constructor: (@key) ->
+
+    get_str: ->
+        return "(key #{@key})"

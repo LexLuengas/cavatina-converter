@@ -16,3 +16,9 @@ octaves = [
     '890'
 ].join ''
 
+keys = [
+    '_'
+    '+'
+]
+
+chord_set = octaves

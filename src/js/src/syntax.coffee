@@ -1,5 +1,5 @@
 get_octave = (symbol) ->
-    for i in [0..octaves.length]
+    for i in [0...octaves.length]
         if (octaves.charAt i) == symbol
             return i
 
@@ -9,34 +9,50 @@ get_splitter_length = (symbol) ->
     return splitter_length[symbol]
 
 tokenize = (expr) ->
-    tokens = []
-    for char in expr
-        if char == operators.special_splitter and
-        tokens[tokens.length - 1] == operators.special_splitter
-            tokens[tokens.length - 1] += char
+    if expr.length <= 1
+        return [expr]
+
+    stack = [expr.charAt(0)]
+
+    for current in (expr.charAt(i) for i in [1...expr.length])
+        previous = stack.pop()
+        if (
+            current == operators.special_splitter and
+            previous == operators.special_splitter
+        ) or (
+            current == 'n' and previous == '\\'
+        ) or (
+            (current == keys[0] and previous == keys[1]) or
+            (current == keys[1] and previous == keys[0])
+        ) or (
+            current in chord_set and previous.charAt(0) in chord_set
+        )
+            stack.push (previous + current)
         else
-            tokens.push char
-    return tokens
+            stack.push previous
+            stack.push current
+
+    return stack
 
 parse = (expr) ->
-    tokens = tokenize expr
-    stack = [[]]
-    for token in tokens
-        if token not in operators['splitters']
-            stack[stack.length - 1].push token
-        else
-            stack[stack.length - 1] = stack[stack.length - 1].join('')
-            stack.push token
-            stack.push []
-
-    stack[stack.length - 1] = stack[stack.length - 1].join('')
+    stack = tokenize expr
 
     tree = []
 
     for token in stack
-        chord_notes = []
-        if token in operators.splitters
+        if token == '\n'
+            tree.push (new Newline())
+
+        else if token in operators.splitters
             tree.push (new Splitter (get_splitter_length token))
+            continue
+
+        else if key_tokens[token] != undefined
+            tree.push (new Key(key_tokens[token]))
+            continue
+
+        chord_notes = []
+
         for symbol in token
             try
                 chord_notes.push (new Note (get_octave symbol))
