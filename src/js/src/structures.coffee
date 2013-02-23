@@ -6,10 +6,8 @@ class Note
 
     set_octave: (octave) ->
         @octave = octave
-        for i in [0..scale.length]
-            if @octave % 7 == i + 1
-                @name = scale[i]
-                @scale_index = parseInt(@octave / scale.length)
+        @name = scale[@octave % 7]
+        @scale_index = parseInt(@octave / 7)
 
     get_name: ->
         return "#{@name} #{@scale_index}"

@@ -1,7 +1,7 @@
 get_octave = (symbol) ->
     for i in [0..octaves.length]
         if (octaves.charAt i) == symbol
-            return (i + 1)
+            return i
 
     throw new InvalidSymbolError
 
