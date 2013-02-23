@@ -1,7 +1,11 @@
 operators = {
     'splitters': [
         ' '
+        '/'
+        '//'
+        '?'
     ]
+    'special_splitter': '/'
 }
 
 octaves = [
@@ -21,3 +25,11 @@ scale = [
     'la'
     'si'
 ]
+
+
+splitter_length = { # in quarters
+    ' ': 4
+    '/': 2
+    '//': 1
+    '?': 3
+}
