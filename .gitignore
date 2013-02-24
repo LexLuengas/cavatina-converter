@@ -1,4 +1,5 @@
 _site/*
 src/js/presto.js
+src/js/presto.min.js
 src/js/presto.coffee
 src/css/style.css
