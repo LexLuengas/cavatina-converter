@@ -9,6 +9,7 @@ prodTargetJsDir      = '.'
 prodTargetFileName   = 'presto'
 prodTargetCoffeeFile = "#{prodSrcCoffeeDir}/#{prodTargetFileName}.coffee"
 prodTargetJsFile     = "#{prodTargetJsDir}/#{prodTargetFileName}.js"
+prodTargetJsMinFile     = "#{prodTargetJsDir}/#{prodTargetFileName}.min.js"
 
 prodCoffeeOpts = "--bare --output #{prodTargetJsDir} --compile #{prodTargetCoffeeFile}"
 
@@ -57,7 +58,15 @@ task 'build', 'Build a single JavaScript file from prod files', ->
                 message = "Compiled #{prodTargetJsFile}"
                 util.log message
                 displayNotification message
-                fs.unlink prodTargetCoffeeFile, (err) -> handleError(err) if err
+                #fs.unlink prodTargetCoffeeFile, (err) -> handleError(err) if err
+                invoke 'compress'
+
+task 'compress', 'Minify', ->
+    sys = require 'sys'
+    exec = (require 'child_process').exec;
+    puts = (error, stdout, stderr) ->
+        sys.puts stdout
+    exec("yuicompressor #{prodTargetJsFile} -o #{prodTargetJsMinFile}", puts);
 
 coffee = (options = "", file) ->
     util.log "Compiling #{file}"
