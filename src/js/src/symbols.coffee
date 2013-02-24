@@ -1,3 +1,5 @@
+digits = '0123456789'
+
 operators = {
     'splitters': [
         ' '
@@ -6,6 +8,8 @@ operators = {
         '?'
     ]
     'special_splitter': '/'
+    'timesig': '~'
+    'measure': ','
 }
 
 octaves = [

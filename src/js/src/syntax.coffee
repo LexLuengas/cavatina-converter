@@ -48,7 +48,11 @@ parse = (expr) ->
             continue
 
         else if key_tokens[token] != undefined
-            tree.push (new Key(key_tokens[token]))
+            tree.push (new Key key_tokens[token])
+            continue
+
+        else if token == operators.measure
+            tree.push (new MeasureEnd)
             continue
 
         chord_notes = []

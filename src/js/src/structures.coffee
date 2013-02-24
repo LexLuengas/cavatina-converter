@@ -31,10 +31,18 @@ class Newline
     constructor: ->
 
     get_str: ->
-        return 'newline'
+        return '(newline)'
 
 class Key
     constructor: (@key) ->
 
     get_str: ->
         return "(key #{@key})"
+
+class MeasureEnd
+    get_str: ->
+        return "(measure end)"
+
+class ErrorSign
+    get_str: ->
+        return '(error)'
