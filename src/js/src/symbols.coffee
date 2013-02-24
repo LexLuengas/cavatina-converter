@@ -9,6 +9,7 @@ operators = {
     ]
     'special_splitter': '/'
     'timesig': '~'
+    'note_length_modifier': '~'
     'measure': ','
 }
 
@@ -19,6 +20,10 @@ octaves = [
     '1234567'
     '890'
 ].join ''
+
+octaves_size = octaves.length
+
+octaves += octaves.toUpperCase()
 
 keys = [
     '_'

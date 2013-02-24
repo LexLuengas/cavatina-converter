@@ -26,6 +26,14 @@ tokenize = (expr) ->
             (current == keys[1] and previous == keys[0])
         ) or (
             current in chord_set and previous.charAt(0) in chord_set
+        ) or (
+            current == operators.note_length_modifier and
+            previous.charAt(Math.max 0, previous.length - 2) in octaves
+        ) or (
+            previous.length < 3 and
+            previous.charAt(0) == operators.timesig and
+            current in digits and
+            key_tokens[stack[stack.length - 1]] != undefined
         )
             stack.push (previous + current)
         else
@@ -55,12 +63,22 @@ parse = (expr) ->
             tree.push (new MeasureEnd)
             continue
 
+        else if token.charAt(0) == operators.timesig
+            if token.length == 3
+                tree.push (new TimeSignature token.charAt(1), token.charAt(2))
+            else
+                tree.push (new ErrorSign)
+            continue
+
         chord_notes = []
 
         for symbol in token
             try
                 chord_notes.push (new Note (get_octave symbol))
             catch error
+                if symbol == operators.note_length_modifier
+                    chord_notes[chord_notes.length - 1]
+                        .increase_length_exponent()
 
         if chord_notes.length > 0
             tree.push (new Chord chord_notes)
