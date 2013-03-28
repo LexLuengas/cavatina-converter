@@ -28,7 +28,10 @@ tokenize = (expr) ->
             current in chord_set and previous.charAt(0) in chord_set
         ) or (
             current == operators.note_length_modifier and
-            previous.charAt(Math.max 0, previous.length - 2) in octaves
+            (
+                previous.charAt(Math.max 0, previous.length - 2) in octaves or
+                previous.charAt(previous.length - 1) in octaves
+            )
         ) or (
             previous.length < 3 and
             previous.charAt(0) == operators.timesig and

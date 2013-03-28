@@ -23,7 +23,8 @@ octaves = [
 
 octaves_size = octaves.length
 
-octaves += octaves.toUpperCase()
+octaves += (octaves.substr 0, 21).toUpperCase()
+octaves += '!@#$%^&*()'
 
 keys = [
     '_'
