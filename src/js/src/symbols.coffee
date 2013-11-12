@@ -1,19 +1,28 @@
 digits = '0123456789'
 
 operators = {
+    'prolonger': '~'
+    'inverter': '`'    
+}
+
+punctuation = {
     'splitters': [
         ' '
         '/'
         '//'
-        '?'
     ]
     'special_splitter': '/'
+    
+    'barline': ','
+    'double_barline': ',,'
+    'bold_double_barline': '.'
+    'repeat_from': ';'
+    'repeat_to':':'
+    
     'timesig': '~'
-    'note_length_modifier': '~'
-    'measure': ','
 }
 
-octaves = [
+range = [
     'zxcvbnm'
     'asdfghj'
     'qwertyu'
@@ -21,14 +30,14 @@ octaves = [
     '890'
 ].join ''
 
-octaves_size = octaves.length
+range_size = range.length
 
-octaves += (octaves.substr 0, 21).toUpperCase()
-octaves += '!@#$%^&*()'
+range += (range.substr 0, 21).toUpperCase()
+range += '!@#$%^&*()'
 
-keys = [
+key_symbols = [
     '_'
     '+'
 ]
 
-chord_set = octaves
+chord_set = range

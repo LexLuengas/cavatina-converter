@@ -13,10 +13,9 @@ splitter_length = { # in quarters
     ' ':    4
     '/':    2
     '//':   1
-    '?':    3
 }
 
-key_tokens = {
+keys = {
     '_':    'sol'
     '+':    'fa'
     '_+':   'do'
