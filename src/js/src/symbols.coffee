@@ -1,8 +1,23 @@
 digits = '0123456789'
 
+range = [
+    'zxcvbnm'
+    'asdfghj'
+    'qwertyu'
+    '1234567'
+    '890'
+].join ''
+
+range_size = range.length
+
+range += (range.substr 0, 21).toUpperCase()
+range += '!@#$%^&*()'
+
+chord_set = range
+
 operators = {
     'prolonger': '~'
-    'inverter': '`'    
+    'inverter': '`'
 }
 
 punctuation = {
@@ -22,22 +37,19 @@ punctuation = {
     'timesig': '~'
 }
 
-range = [
-    'zxcvbnm'
-    'asdfghj'
-    'qwertyu'
-    '1234567'
-    '890'
-].join ''
-
-range_size = range.length
-
-range += (range.substr 0, 21).toUpperCase()
-range += '!@#$%^&*()'
-
 key_symbols = [
     '_'
     '+'
 ]
 
-chord_set = range
+accidentals_symbols = [
+    '-'
+    '='
+]
+
+articulations_symbols = [
+    '\''
+    '\"'
+]
+
+note_dot = '<'

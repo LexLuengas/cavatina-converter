@@ -5,6 +5,7 @@ class Note
         @length_base = 1 # by 1/8
         @set_pitch(@pitch)
         @set_length_exponent(@length_exponent or 0)
+        @note_diacritics = [] # list of strings containing all note alterations and note articulations.
 
     set_length_exponent: (length_exponent) ->
         @length_exponent = length_exponent
@@ -18,11 +19,14 @@ class Note
             @length_base = 2
         @pitch = pitch % range_size
         @name = scale[@pitch % 7]
-        @octave = parseInt(@pitch / 7)
+        @octave = parseInt(@pitch / 7) + 3
+        
+    add_diacritical_mark: (mark) ->
+        if (accidentals[mark] != undefined or articulations[mark] != undefined or mark == note_dot) # pongo esto en el 'parse'?
+            @note_diacritics.push mark
 
     get_name: ->
-        return "#{@name} #{@octave} [#{@length}/8]"
-
+        return "#{@name} #{@octave} [#{@length}/8]" # 'octave' is the actual octave used in musical notation
 
 class Chord
     constructor: (@notes) -> # a list of Note objects
@@ -30,7 +34,6 @@ class Chord
     get_str: ->
         notes = (note.get_name() for note in @notes).join(' ')
         return "chord (#{notes})"
-
 
 class Splitter
     constructor: (@length) ->
@@ -43,12 +46,6 @@ class Newline
 
     get_str: ->
         return '(newline)'
-
-class Key
-    constructor: (@key) ->
-
-    get_str: ->
-        return "(key #{@key})"
 
 class MeasureEnd
     get_str: ->
@@ -69,6 +66,20 @@ class RepeatFrom
 class RepeatTo
     get_str: ->
         return "(repeat to)"
+        
+class KeySignature
+    constructor: (@cleff, @signature) -> # signature: an integer in the interval [-7,7]
+        @sharps_or_flats = switch
+            when @signature > 0 then 'sharps'
+            when @signature < 0 then 'flats'
+            else ''
+        @amount = Math.abs(@signature)
+
+    get_str: ->
+        if @amount != 0
+            return "(cleff #{@cleff}, #{@amount} #{@sharps_or_flats})"
+        else
+            return "(cleff #{@cleff}, 0 sharps/flats)"
 
 class TimeSignature
     constructor: (@numerator, @denominator) ->
