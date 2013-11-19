@@ -9,6 +9,7 @@ presenceTest = (regexpr,array) ->
 class Note
     constructor: (@pitch, @key_signature, @length_exponent) ->
         @length_base = 1 # by 1/8
+        @denominator = 8
         @set_pitch(@pitch)
         @set_length_exponent(@length_exponent or 0)
         @note_diacritics = [] # list of strings containing all note alterations and note articulations as *input* symbols.
@@ -25,6 +26,13 @@ class Note
 
     increase_length_exponent: ->
         @set_length_exponent(@length_exponent + 1)
+
+    add_dot_length: ->
+        if @length_base * (Math.pow 2, @length_exponent) > 1
+            @length = 3 * @length_base * (Math.pow 2, @length_exponent-1)
+        else
+            @denominator = 2 * @denominator
+            @length = 3 * @length_base * (Math.pow 2, @length_exponent)
 
     set_pitch: (pitch) ->
         if pitch >= range_size
@@ -65,17 +73,24 @@ class Note
         else if (mark in articulations_symbols and !(presenceTest(/[\'\']|[\"\"]/, @note_diacritics)) ) # do not exceed 2 diacritic maximum
             @note_diacritics.push mark
 
+        # accent
+        if mark == accent_mark
+            @note_diacritics.push mark
+
     get_name: ->
         note_accidentals = (accidentals_short[n] for n in @note_diacritics when accidentals_short[n] != undefined)
         note_articulations = (articulations[n] for n in @note_diacritics when articulations[n] != undefined)
+        if accent_mark in @note_diacritics
+            note_articulations.push 'accent'
         
-        return "#{@name}#{note_accidentals} #{@octave} [#{@length}/8]" + (if note_articulations.length > 0 then ('; ' + note_articulations) else '')
+        return "#{@name}#{note_accidentals} #{@octave} [#{@length}/#{@denominator}]" + (
+            if note_articulations.length > 0 then (', ' + note_articulations.join(', ')) else '')
 
 class Chord
     constructor: (@notes) -> # a list of Note objects
 
     get_str: ->
-        notes = (note.get_name() for note in @notes).join(' ')
+        notes = (note.get_name() for note in @notes).join('; ')
         return "chord (#{notes})"
 
 class Splitter
@@ -93,7 +108,7 @@ class Newline
 class MeasureEnd
     get_str: ->
         return "(measure end)"
-        
+
 class SectionEnd
     get_str: ->
         return "(section end)"
@@ -101,14 +116,26 @@ class SectionEnd
 class End
     get_str: ->
         return "(end)"
-        
+
 class RepeatFrom
     get_str: ->
-        return "(repeat from)"
-        
+        return "||:"
+
 class RepeatTo
     get_str: ->
-        return "(repeat to)"
+        return ":||"
+
+class RepeatSectionStart
+    constructor: (@n) ->
+
+    get_str: ->
+        return "(#{@n}th repeat section start)"
+
+class RepeatSectionEnd
+    constructor: ->
+
+    get_str: ->
+        return "(repeat section end)"
         
 class KeySignature
     constructor: (@clef, @signature) -> # signature: an integer in the interval [-7,7]
@@ -137,6 +164,47 @@ class TimeSignature
     get_str: ->
         return "(timesig #{@numerator} / #{@denominator})"
 
+class Dynamic
+    constructor: (@dynamic) ->
+
+    get_str: ->
+        return "(dynamic: #{@dynamic})"
+
+class GradualDynamic
+    constructor: (@gdynamic) ->
+
+    get_str: ->
+        return "(change dynamic: #{@gdynamic})"
+
+class OctavationStart
+    constructor: () ->
+
+    get_str: ->
+        return "(8va)---{"
+
+class OctavationEnd
+    constructor: () ->
+
+    get_str: ->
+        return "}(8va)"
+
+class Segno
+    constructor: () ->
+
+    get_str: ->
+        return "(segno)"
+
+class Coda
+    constructor: () ->
+
+    get_str: ->
+        return "(coda)"
+
+class FromTo
+    constructor: (@from,@to) ->
+
+    get_str: ->
+        return "(#{@from}" + (if @to != undefined then " #{@to})" else ")")
 
 class ErrorSign
     get_str: ->

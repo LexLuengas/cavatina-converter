@@ -21,7 +21,26 @@ clefs = {
     '+_':   'C' #'do'
 }
 
-accidentals = {# arreglar key signature, que piensa que esto es un array y no un diccionario
+repetition = {
+    'o' : 1
+    'oo' : 2
+    'o`' : 'end'
+}
+
+octavation = {
+    'O' : 1
+    'OO' : 1
+    'O`' : 'end'
+}
+
+references = {
+    'k' : 'D.C.'
+    'K' : 'D.S.'
+    'i' : 'al Coda'
+    'I' : 'al Fine'
+}
+
+accidentals = {
     '-' : 'bemol'
     '=' : 'sostenido'
     '--' : 'doble bemol'
@@ -37,13 +56,36 @@ articulations = {
     '\"\"' : 'fermatta'
 }
 
-accidentals_short = {# arreglar key signature, que piensa que esto es un array y no un diccionario
+accidentals_short = {
     '-' : '(b)'
     '=' : '(s)'
     '--' : '(bb)'
     '==' : '(ss)'
     '-=' : '(n)'
     '=-' : '(n)'
+}
+
+dynamics = {
+    '\\|' : 'mp'
+    '|\\' : 'mf'
+    '\\' : 'p'
+    '|' : 'f'
+    '\\\\' : 'pp'
+    '||' : 'ff'
+    '\\\\\\' : 'ppp'
+    '|||' : 'fff'
+    '\\\\|' : 'sfz'
+    '||\\' : 'sfz'
+    '\\\\`' : 'fp'
+    '\\\\\\|' : 'fp'
+    '||`' : 'fp'
+    '|||\\' : 'fp'
+}
+
+gradual_dynamics = {
+    'l' : 'crescendo'
+    'll' : 'crescendo'
+    'L' : 'decrescendo'
 }
 
 circle_of_fifths = {

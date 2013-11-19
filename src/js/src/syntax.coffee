@@ -44,7 +44,7 @@ tokenize = (expr) ->
                     previous.length <= 2 and
                     previous.charAt(0) == punctuation.timesig and
                     current in digits
-                ) or (
+                ) or ( # case 12 is numumerator or 16 is denominator
                     previous.length == 3 and
                     /^(12)|(16)$/.test(previous.substring(1,previous.length) + current)
                 ) or (
@@ -59,15 +59,26 @@ tokenize = (expr) ->
                     punctuation.bold_double_barline
                 ]
             )
+        ) or ( # repeats
+            (current == 'o' or current == operators.inverter) and previous == 'o'
+        ) or ( # octavation
+            (current == 'O' or current == operators.inverter) and previous == 'O'
+        ) or ( # gradual dynamics: crescendo, long form
+            current == 'l' and previous == 'l'
         ) or ( # chords
             current in chord_set and previous.charAt(0) in chord_set
         ) or ( # altered notes
-            (current == operators.prolonger or current in all_diacritics) and (
+            (   (current == operators.prolonger and previous.match(/~[-=\'\"<>]*~/g) == null) or # no more than 2 '~' for each note
+                current in all_diacritics
+            ) and (
                 previous.charAt(0) in range
-                # ? para qué eran estas condiciones?
-                # previous.charAt(Math.max 0, previous.length - 2) in range or
-                # previous.charAt(previous.length - 1) in range
             )
+        ) or ( # dynamics
+            (current in dynamics_symbols or current == operators.inverter) and (previous.charAt(0) in dynamics_symbols) and (dynamics[previous + current] != undefined)
+        ) or ( # repeat references with indications
+            current in ['i','I'] and previous in repeat_reference
+        ) or ( # error sign
+            current == punctuation.bold_double_barline and previous == punctuation.bold_double_barline
         )
             stack.push (previous + current)
         else
@@ -81,7 +92,7 @@ parse = (expr) ->
     tree = []
     current_key_signature = new KeySignature clefs['_'] #   this variable is the last defined key signature and affects all
     #                                                       succeeding note objects. If no key signature is yet defined when
-    #                                                       a note is written, the G-clef without accidentals is assumed.
+    #                                                       a note is entered, the G-clef without accidentals is assumed.
 
     for token in stack
         if token == '\n'
@@ -100,7 +111,7 @@ parse = (expr) ->
                 tree.push (new KeySignature clefs[splitted_token[1]], new_key_signature)
                 current_key_signature = new KeySignature clefs[splitted_token[1]], new_key_signature
                 continue
-        
+
         else if token.charAt(0) == punctuation.timesig
             if token.length == 3
                 tree.push (new TimeSignature token.charAt(1), token.charAt(2))
@@ -121,21 +132,62 @@ parse = (expr) ->
         else if token == punctuation.barline
             tree.push (new MeasureEnd)
             continue
-        
+
         else if token == punctuation.double_barline
             tree.push (new SectionEnd)
             continue
-        
+
         else if token == punctuation.bold_double_barline
             tree.push (new End)
             continue
-        
+
         else if token == punctuation.repeat_from
             tree.push (new RepeatFrom)
             continue
-        
+
         else if token == punctuation.repeat_to
             tree.push (new RepeatTo)
+            continue
+
+        else if repetition[token] != undefined
+            if typeof repetition[token] == 'number'
+                tree.push (new RepeatSectionStart repetition[token])
+            else
+                tree.push (new RepeatSectionEnd)
+            continue
+
+        else if octavation[token] != undefined
+            if typeof octavation[token] == 'number'
+                tree.push (new OctavationStart)
+            else
+                tree.push (new OctavationEnd)
+            continue
+
+        else if token.charAt(0) in dynamics_symbols
+            tree.push (new Dynamic dynamics[token])
+            continue
+
+        else if token.charAt(0) in gradual_dynamics_symbols
+            tree.push (new GradualDynamic gradual_dynamics[token])
+            continue
+
+        else if token == navigation.coda
+            tree.push (new Coda)
+            continue
+
+        else if token == navigation.segno
+            tree.push (new Segno)
+            continue
+
+        else if token.charAt(0) in repeat_reference
+            if token.length > 0
+                tree.push (new FromTo references[token.charAt(0)], references[token.charAt(1)])
+            else
+                tree.push (new FromTo references[token])
+            continue
+
+        else if token == '..' and not (tree[tree.length - 1] instanceof Chord) # internally used to create beams between eighth notes
+            tree.push (new ErrorSign)
             continue
 
         chord_notes = []
@@ -148,7 +200,10 @@ parse = (expr) ->
                 if symbol == operators.prolonger
                     chord_notes[chord_notes.length - 1]
                         .increase_length_exponent()
-                if ((accidentals[symbol] != undefined or articulations[symbol] != undefined or symbol == note_dot) and chord_notes.length > 0)
+                if (symbol == note_dot and chord_notes.length > 0)
+                    chord_notes[chord_notes.length - 1]
+                        .add_dot_length()
+                if ((symbol in accidentals_symbols or symbol in articulations_symbols or symbol == accent_mark) and chord_notes.length > 0)
                     chord_notes[chord_notes.length - 1]
                         .add_diacritical_mark(symbol)
 

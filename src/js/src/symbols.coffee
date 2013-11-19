@@ -53,6 +53,27 @@ articulations_symbols = [
 ]
 
 note_dot = '<'
+accent_mark = '>'
+
+dynamics_symbols = [
+    '\\'
+    '|'
+]
+
+gradual_dynamics_symbols = [
+    'l'
+    'L'
+]
+
+navigation = {
+    'coda' : 'i'
+    'segno' : 'I'
+}
+
+repeat_reference = [
+    'k'
+    'K'
+]
 
 all_diacritics = (accidentals_symbols.concat articulations_symbols)
-all_diacritics.push note_dot
+all_diacritics.push(note_dot, accent_mark)
