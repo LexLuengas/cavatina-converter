@@ -30,11 +30,11 @@ tokenize = (expr) ->
             (current == key_symbols[0] and previous == key_symbols[1]) or
             (current == key_symbols[1] and previous == key_symbols[0])
         ) or ( # key signature
-            keys[previous.charAt(0)] != undefined and
+            clefs[previous.charAt(0)] != undefined and
             current in accidentals_symbols and
-            (not /-|=/g.test(previous) or previous.match(/-|=/g).length < 8) and
+            (not /-|=/g.test(previous) or previous.match(/-|=/g).length < 7) and
             (
-                keys[previous.charAt(previous.length - 1)] != undefined or
+                clefs[previous.charAt(previous.length - 1)] != undefined or
                 (current == accidentals_symbols[0] and previous.charAt(previous.length - 1) == accidentals_symbols[0]) or
                 (current == accidentals_symbols[1] and previous.charAt(previous.length - 1) == accidentals_symbols[1])
             )
@@ -51,7 +51,7 @@ tokenize = (expr) ->
                     previous == '~121' and current == '6'
                 )
             ) and (
-                keys[stack[stack.length - 1]] != undefined or
+                clefs[stack[stack.length - 1]] != undefined or
                 stack[stack.length - 1] in [
                     punctuation.barline,
                     punctuation.barline,
@@ -61,11 +61,12 @@ tokenize = (expr) ->
             )
         ) or ( # chords
             current in chord_set and previous.charAt(0) in chord_set
-        ) or ( # lengthened notes
-            current == operators.prolonger and
-            (
-                previous.charAt(Math.max 0, previous.length - 2) in range or #? Esto es para el caso de doble '~'?
-                previous.charAt(previous.length - 1) in range
+        ) or ( # altered notes
+            (current == operators.prolonger or current in all_diacritics) and (
+                previous.charAt(0) in range
+                # ? para qué eran estas condiciones?
+                # previous.charAt(Math.max 0, previous.length - 2) in range or
+                # previous.charAt(previous.length - 1) in range
             )
         )
             stack.push (previous + current)
@@ -77,8 +78,10 @@ tokenize = (expr) ->
 
 parse = (expr) ->
     stack = tokenize expr
-
     tree = []
+    current_key_signature = new KeySignature clefs['_'] #   this variable is the last defined key signature and affects all
+    #                                                       succeeding note objects. If no key signature is yet defined when
+    #                                                       a note is written, the G-clef without accidentals is assumed.
 
     for token in stack
         if token == '\n'
@@ -90,11 +93,30 @@ parse = (expr) ->
 
         else if token.charAt(0) in key_symbols
             splitted_token = /^([\+_]+)((-*|=*)?)$/.exec(token)
-            if (splitted_token != null and keys[splitted_token[1]] != undefined)
+            if (splitted_token != null and clefs[splitted_token[1]] != undefined)
                 sign = if splitted_token[2].length == 0 then 0 else (if splitted_token[2].charAt(0) == '-' then -1 else 1)
                 new_key_signature = splitted_token[2].length * sign
-                tree.push (new KeySignature keys[splitted_token[1]], new_key_signature)
+                
+                tree.push (new KeySignature clefs[splitted_token[1]], new_key_signature)
+                current_key_signature = new KeySignature clefs[splitted_token[1]], new_key_signature
                 continue
+        
+        else if token.charAt(0) == punctuation.timesig
+            if token.length == 3
+                tree.push (new TimeSignature token.charAt(1), token.charAt(2))
+            else if (token.length == 4 or token.length == 5)
+                if /^(12)/.test(token.substring(1,token.length))
+                    token_numerator = 12
+                else
+                    token_numerator = token.charAt(1)
+                if /(16)$/.test(token)
+                    token_denominator = 16
+                else
+                    token_denominator = token.charAt(token.length - 1)
+                tree.push (new TimeSignature token_numerator, token_denominator)
+            else
+                tree.push (new ErrorSign)
+            continue
 
         else if token == punctuation.barline
             tree.push (new MeasureEnd)
@@ -116,32 +138,19 @@ parse = (expr) ->
             tree.push (new RepeatTo)
             continue
 
-        else if token.charAt(0) == punctuation.timesig
-            if token.length == 3
-                tree.push (new TimeSignature token.charAt(1), token.charAt(2))
-            else if (token.length == 4 or token.length == 5)
-                if /^(12)/.test(token.substring(1,token.length))
-                    token_numerator = 12
-                else
-                    token_numerator = token.charAt(1)
-                if /(16)$/.test(token)
-                    token_denominator = 16
-                else
-                    token_denominator = token.charAt(token.length - 1)
-                tree.push (new TimeSignature token_numerator, token_denominator)
-            else
-                tree.push (new ErrorSign)
-            continue
-
         chord_notes = []
 
         for symbol in token
             try
-                chord_notes.push (new Note (get_pitch symbol))
+                note_pitch = get_pitch symbol
+                chord_notes.push (new Note note_pitch, current_key_signature)
             catch error
                 if symbol == operators.prolonger
                     chord_notes[chord_notes.length - 1]
                         .increase_length_exponent()
+                if ((accidentals[symbol] != undefined or articulations[symbol] != undefined or symbol == note_dot) and chord_notes.length > 0)
+                    chord_notes[chord_notes.length - 1]
+                        .add_diacritical_mark(symbol)
 
         if chord_notes.length > 0
             tree.push (new Chord chord_notes)

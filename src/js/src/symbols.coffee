@@ -53,3 +53,6 @@ articulations_symbols = [
 ]
 
 note_dot = '<'
+
+all_diacritics = (accidentals_symbols.concat articulations_symbols)
+all_diacritics.push note_dot

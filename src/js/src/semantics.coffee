@@ -1,13 +1,12 @@
 scale = [
-    'do'
-    're'
-    'mi'
-    'fa'
-    'sol'
-    'la'
-    'si'
+    'C' #'do'
+    'D' #'re'
+    'E' #'mi'
+    'F' #'fa'
+    'G' #'sol'
+    'A' #'la'
+    'B' #'si'
 ]
-
 
 splitter_length = { # in quarters
     ' ':    4
@@ -15,11 +14,11 @@ splitter_length = { # in quarters
     '//':   1
 }
 
-keys = {
-    '_':    'sol'
-    '+':    'fa'
-    '_+':   'do'
-    '+_':   'do'
+clefs = {
+    '_':    'G' #'sol'
+    '+':    'F' #'fa'
+    '_+':   'C' #'do'
+    '+_':   'C' #'do'
 }
 
 accidentals = {# arreglar key signature, que piensa que esto es un array y no un diccionario
@@ -36,6 +35,15 @@ articulations = {
     '\"' : 'tenuto'
     '\'\'' : 'staccatissimo'
     '\"\"' : 'fermatta'
+}
+
+accidentals_short = {# arreglar key signature, que piensa que esto es un array y no un diccionario
+    '-' : '(b)'
+    '=' : '(s)'
+    '--' : '(bb)'
+    '==' : '(ss)'
+    '-=' : '(n)'
+    '=-' : '(n)'
 }
 
 circle_of_fifths = {
