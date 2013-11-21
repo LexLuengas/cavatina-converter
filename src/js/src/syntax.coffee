@@ -59,24 +59,31 @@ tokenize = (expr) ->
                     punctuation.bold_double_barline
                 ]
             )
-        ) or ( # repeats
-            (current == 'o' or current == operators.inverter) and previous == 'o'
-        ) or ( # octavation
-            (current == 'O' or current == operators.inverter) and previous == 'O'
-        ) or ( # gradual dynamics: crescendo, long form
-            current == 'l' and previous == 'l'
         ) or ( # chords
             current in chord_set and previous.charAt(0) in chord_set
         ) or ( # altered notes
-            (   (current == operators.prolonger and previous.match(/~[-=\'\"<>]*~/g) == null) or # no more than 2 '~' for each note
-                current in all_diacritics
+            (   (current in all_diacritics) or
+                (current == operators.prolonger and not /~[-=\'\"<>]*~/g.test(previous) ) or # no more than 2 '~' for each note
+                (current == operators.inverter and /[^\[](\[|\{)$/.test(previous)) or # inverted ornaments
+                (current == '[' and (/[^\[]\[{1,5}$/g.test(previous) or not /\[/.test(previous)) and not /\{/.test(previous)) or # mordent, trills, no double ornamentation
+                (current == '{' and not /\[|\{/.test(previous)) # grupetto, no double ornamentation
             ) and (
                 previous.charAt(0) in range
             )
         ) or ( # dynamics
             (current in dynamics_symbols or current == operators.inverter) and (previous.charAt(0) in dynamics_symbols) and (dynamics[previous + current] != undefined)
+        ) or ( # gradual dynamics: crescendo, long form
+            current == 'l' and previous == 'l'
+        ) or ( # repeats
+            (current == 'o' or current == operators.inverter) and previous == 'o'
         ) or ( # repeat references with indications
             current in ['i','I'] and previous in repeat_reference
+        ) or ( # octavation
+            (current == 'O' or current == operators.inverter) and previous == 'O'
+        ) or ( # pedal mark 'up'
+            current == 'p' and previous == 'p'
+        ) or ( # rest prolongation
+            current == operators.prolonger and /(\]~{0,2}$)|(\}~{0,1}$)/g.test(previous)
         ) or ( # error sign
             current == punctuation.bold_double_barline and previous == punctuation.bold_double_barline
         )
@@ -186,8 +193,30 @@ parse = (expr) ->
                 tree.push (new FromTo references[token])
             continue
 
+        else if token == pedal.down
+            tree.push (new PedalDown)
+            continue
+
+        else if token == pedal.up
+            tree.push (new PedalUp)
+            continue
+
+        else if token == arpegio and (tree[tree.length - 1] instanceof Chord)
+            tree[tree.length - 1].add_arpeggio()
+            continue
+
         else if token == '..' and not (tree[tree.length - 1] instanceof Chord) # internally used to create beams between eighth notes
             tree.push (new ErrorSign)
+            continue
+        
+        else if token.charAt(0) in rests
+            for symbol in token
+                if symbol == ']'
+                    tree.push (new Rest 0)
+                else if symbol == '}'
+                    tree.push (new Rest 1)
+                else
+                    tree[tree.length - 1].increase_length_exponent()
             continue
 
         chord_notes = []
@@ -203,7 +232,13 @@ parse = (expr) ->
                 if (symbol == note_dot and chord_notes.length > 0)
                     chord_notes[chord_notes.length - 1]
                         .add_dot_length()
-                if ((symbol in accidentals_symbols or symbol in articulations_symbols or symbol == accent_mark) and chord_notes.length > 0)
+                if ((
+                    symbol in accidentals_symbols or
+                    symbol in articulations_symbols or
+                    symbol in ornaments_symbols or
+                    symbol == operators.inverter or # for the case of inverted ornamentation
+                    symbol == accent_mark
+                    ) and chord_notes.length > 0)
                     chord_notes[chord_notes.length - 1]
                         .add_diacritical_mark(symbol)
 

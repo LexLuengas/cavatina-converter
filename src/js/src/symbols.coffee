@@ -38,32 +38,47 @@ punctuation = {
 }
 
 key_symbols = [
-    '_'
-    '+'
+    '_' # G
+    '+' # F
+]
+
+rests = [
+    ']'
+    '}'
 ]
 
 accidentals_symbols = [
-    '-'
-    '='
+    '-' # bemol
+    '=' # sostenido
 ]
 
 articulations_symbols = [
-    '\''
-    '\"'
+    '\'' # stacatto
+    '\"' # tenuto
 ]
 
 note_dot = '<'
 accent_mark = '>'
 
+ornaments_symbols = [
+    '[' # mordente
+    '{' # grupeto
+]
+
 dynamics_symbols = [
-    '\\'
-    '|'
+    '\\' # piano
+    '|' # forte
 ]
 
 gradual_dynamics_symbols = [
-    'l'
-    'L'
+    'l' # crescendo
+    'L' # decrescendo
 ]
+
+arpegio = 'P' # chord ornament
+
+all_diacritics = (accidentals_symbols.concat articulations_symbols)
+all_diacritics.push(note_dot, accent_mark)
 
 navigation = {
     'coda' : 'i'
@@ -75,5 +90,7 @@ repeat_reference = [
     'K'
 ]
 
-all_diacritics = (accidentals_symbols.concat articulations_symbols)
-all_diacritics.push(note_dot, accent_mark)
+pedal = {
+    'down' : 'p'
+    'up' : 'pp'
+}

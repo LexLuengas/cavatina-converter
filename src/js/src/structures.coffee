@@ -1,24 +1,16 @@
 class InvalidSymbolError extends Error
 
-presenceTest = (regexpr,array) ->
-    for i in array # returns true if any of the entries matches regexpr
-        if regexpr.test(i)
-            return true
-    return false
+MatchIndex = (regexpr,array) ->
+    for i in [0...array.length] # returns index of the first entry which matches regexpr, or -1 if it wasn't matched
+        if regexpr.test(array[i])
+            return i
+    return -1
 
-class Note
-    constructor: (@pitch, @key_signature, @length_exponent) ->
+class TimeInterval
+    constructor: (@length_exponent) ->
         @length_base = 1 # by 1/8
         @denominator = 8
-        @set_pitch(@pitch)
         @set_length_exponent(@length_exponent or 0)
-        @note_diacritics = [] # list of strings containing all note alterations and note articulations as *input* symbols.
-        signature_notes = @key_signature.get_signature_notes()
-        if signature_notes.indexOf(@name) != -1
-            if signature_notes.charAt(0) == 'F'
-                @add_diacritical_mark('=') # sostenido
-            if signature_notes.charAt(0) == 'B'
-                @add_diacritical_mark('-') # bemol
 
     set_length_exponent: (length_exponent) ->
         @length_exponent = length_exponent
@@ -33,6 +25,18 @@ class Note
         else
             @denominator = 2 * @denominator
             @length = 3 * @length_base * (Math.pow 2, @length_exponent)
+
+class Note extends TimeInterval
+    constructor: (@pitch, @key_signature, @length_exponent) ->
+        super(@length_exponent)
+        @set_pitch(@pitch)
+        @note_diacritics = [] # list of strings containing all note alterations and note articulations as *input* symbols.
+        signature_notes = @key_signature.get_signature_notes()
+        if signature_notes.indexOf(@name) != -1
+            if signature_notes.charAt(0) == 'F'
+                @add_diacritical_mark('=') # sostenido
+            if signature_notes.charAt(0) == 'B'
+                @add_diacritical_mark('-') # bemol
 
     set_pitch: (pitch) ->
         if pitch >= range_size
@@ -49,7 +53,7 @@ class Note
         
     add_diacritical_mark: (mark) ->
         # accidentals
-        if (mark in accidentals_symbols and presenceTest(/-|=/,@note_diacritics)) #  double accidentals
+        if (mark in accidentals_symbols and MatchIndex(/-|=/, @note_diacritics) != -1) #  double accidentals
             mark_index = @note_diacritics.indexOf(mark)
             if mark_index != -1
                 @note_diacritics[mark_index] = switch
@@ -60,50 +64,70 @@ class Note
                     @note_diacritics[@note_diacritics.indexOf('=')] = '=-'
                 when '='
                     @note_diacritics[@note_diacritics.indexOf('-')] = '-='
-        else if (mark in accidentals_symbols and !(presenceTest(/[-|=][-|=]/, @note_diacritics)) ) # do not exceed 2 diacritic maximum
+        else if (mark in accidentals_symbols and (MatchIndex(/[-|=][-|=]/, @note_diacritics)) == -1) # base case, do not exceed 2 diacritic maximum
             @note_diacritics.push mark
         
         # articulations
-        if (mark in articulations_symbols and presenceTest(/\'|\"/,@note_diacritics)) #  double articulations
+        else if (mark in articulations_symbols and MatchIndex(/\'|\"/, @note_diacritics) != -1) #  double articulations
             mark_index = @note_diacritics.indexOf(mark)
             if mark_index != -1
                 @note_diacritics[mark_index] = switch
                     when mark == '\'' then '\'\''
                     when mark == '\"' then '\"\"'
-        else if (mark in articulations_symbols and !(presenceTest(/[\'\']|[\"\"]/, @note_diacritics)) ) # do not exceed 2 diacritic maximum
+        else if (mark in articulations_symbols and (MatchIndex(/[\'\']|[\"\"]/, @note_diacritics)) == -1) # base case, do not exceed 2 diacritic maximum
             @note_diacritics.push mark
-
+        
         # accent
-        if mark == accent_mark
+        else if mark == accent_mark
+            @note_diacritics.push mark
+        
+        # ornamentation
+        else if (mark == operators.inverter and MatchIndex(/\[|\{/, @note_diacritics) != -1) # inversion
+            lastOrnmIndex = @note_diacritics.length - 1 # last index of simple ornament
+            while @note_diacritics[lastOrnmIndex] not in ornaments_symbols
+                lastOrnmIndex = lastOrnmIndex - 1
+            @note_diacritics[lastOrnmIndex] = @note_diacritics[lastOrnmIndex] + '`'
+        else if (mark == '[' and MatchIndex(/\[+/, @note_diacritics) != -1) # trills
+            mark_index = MatchIndex(/\[+/, @note_diacritics)
+            @note_diacritics[mark_index] = @note_diacritics[mark_index] + '['
+        else if mark in ornaments_symbols # base case
             @note_diacritics.push mark
 
     get_name: ->
-        note_accidentals = (accidentals_short[n] for n in @note_diacritics when accidentals_short[n] != undefined)
-        note_articulations = (articulations[n] for n in @note_diacritics when articulations[n] != undefined)
+        note_accidentals = (accidentals_short[d] for d in @note_diacritics when accidentals_short[d] != undefined)
+        note_articulations = (articulations[d] for d in @note_diacritics when articulations[d] != undefined)
+        note_ornaments = (ornaments[d] for d in @note_diacritics when ornaments[d] != undefined)
         if accent_mark in @note_diacritics
             note_articulations.push 'accent'
         
-        return "#{@name}#{note_accidentals} #{@octave} [#{@length}/#{@denominator}]" + (
-            if note_articulations.length > 0 then (', ' + note_articulations.join(', ')) else '')
+        return "#{@name}#{note_accidentals} #{@octave} [#{@length}/#{@denominator}]" + 
+            (if note_articulations.length > 0 then (', ' + note_articulations.join(', ')) ) + 
+            (if note_ornaments.length > 0 then (', ' + note_ornaments.join(', ')) )
 
 class Chord
     constructor: (@notes) -> # a list of Note objects
+        @arpeggio = false
+
+    add_arpeggio: ->
+        @arpeggio = true
 
     get_str: ->
         notes = (note.get_name() for note in @notes).join('; ')
-        return "chord (#{notes})"
+        if @arpeggio
+            return "chord [arpeggio](#{notes})"
+        else
+            return "chord (#{notes})"
+
+class Rest extends TimeInterval
+    get_str: ->
+        return "(rest [#{@length}/#{@denominator}])"
+        
 
 class Splitter
     constructor: (@length) ->
 
     get_str: ->
         return "space (#{@length}/4)"
-
-class Newline
-    constructor: ->
-
-    get_str: ->
-        return '(newline)'
 
 class MeasureEnd
     get_str: ->
@@ -205,6 +229,24 @@ class FromTo
 
     get_str: ->
         return "(#{@from}" + (if @to != undefined then " #{@to})" else ")")
+
+class PedalDown
+    constructor: () ->
+
+    get_str: ->
+        return '(pedal down)'
+
+class PedalUp
+    constructor: () ->
+
+    get_str: ->
+        return '(pedal up)'
+
+class Newline
+    constructor: ->
+
+    get_str: ->
+        return '(newline)'
 
 class ErrorSign
     get_str: ->

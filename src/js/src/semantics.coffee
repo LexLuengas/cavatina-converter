@@ -88,6 +88,18 @@ gradual_dynamics = {
     'L' : 'decrescendo'
 }
 
+ornaments = {
+    '[' : 'mordente'
+    '{' : 'grupeto'
+    '[`' : 'mordente inv.'
+    '{`' : 'grupeto inv.'
+    '[[' : 'trino[1/8]'
+    '[[[' : 'trino[1/8]' # a propósito
+    '[[[[' : 'trino[2/8]'
+    '[[[[[' : 'trino[3/8]'
+    '[[[[[[' : 'trino[4/8]'
+}
+
 circle_of_fifths = {
     '-7' : 'Cb / Abm' # equivalente a 5
     '-6' : 'Gb / Ebm' # equivalente a 6
