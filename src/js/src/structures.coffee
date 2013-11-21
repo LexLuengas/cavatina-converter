@@ -32,7 +32,8 @@ class Note extends TimeInterval
         @set_pitch(@pitch)
         @note_diacritics = [] # list of strings containing all note alterations and note articulations as *input* symbols.
         signature_notes = @key_signature.get_signature_notes()
-        if signature_notes.indexOf(@name) != -1
+        if @name in signature_notes
+            @keyAccidental = true # remember if added accidental comes from key signature
             if signature_notes.charAt(0) == 'F'
                 @add_diacritical_mark('=') # sostenido
             if signature_notes.charAt(0) == 'B'
@@ -56,14 +57,22 @@ class Note extends TimeInterval
         if (mark in accidentals_symbols and MatchIndex(/-|=/, @note_diacritics) != -1) #  double accidentals
             mark_index = @note_diacritics.indexOf(mark)
             if mark_index != -1
-                @note_diacritics[mark_index] = switch
-                    when mark == '-' then '--'
-                    when mark == '=' then '=='
+                if not @keyAccidental # key signature consistency
+                    @note_diacritics[mark_index] = switch
+                        when mark == '-' then '--'
+                        when mark == '=' then '=='
             else switch mark
                 when '-'
-                    @note_diacritics[@note_diacritics.indexOf('=')] = '=-'
+                    if not @keyAccidental
+                        @note_diacritics[@note_diacritics.indexOf('=')] = '=-'
+                    else
+                        @note_diacritics[@note_diacritics.indexOf('=')] = '-'
                 when '='
-                    @note_diacritics[@note_diacritics.indexOf('-')] = '-='
+                    if not @keyAccidental
+                        @note_diacritics[@note_diacritics.indexOf('-')] = '-='
+                    else
+                        @note_diacritics[@note_diacritics.indexOf('-')] = '='
+            @keyAccidental = false
         else if (mark in accidentals_symbols and (MatchIndex(/[-|=][-|=]/, @note_diacritics)) == -1) # base case, do not exceed 2 diacritic maximum
             @note_diacritics.push mark
         
@@ -99,10 +108,9 @@ class Note extends TimeInterval
         note_ornaments = (ornaments[d] for d in @note_diacritics when ornaments[d] != undefined)
         if accent_mark in @note_diacritics
             note_articulations.push 'accent'
-        
         return "#{@name}#{note_accidentals} #{@octave} [#{@length}/#{@denominator}]" + 
-            (if note_articulations.length > 0 then (', ' + note_articulations.join(', ')) ) + 
-            (if note_ornaments.length > 0 then (', ' + note_ornaments.join(', ')) )
+            (if note_articulations.length > 0 then (", " + note_articulations.join(", ")) else "") + 
+            (if note_ornaments.length > 0 then (", " + note_ornaments.join(", ")) else "")
 
 class Chord
     constructor: (@notes) -> # a list of Note objects
