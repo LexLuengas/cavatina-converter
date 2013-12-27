@@ -177,9 +177,8 @@ class KeySignature
             else 'sharps/flats'
         @amount = Math.abs(@signature or 0)
         @signature_notes = switch
-            when @signature > 0 then 'FCGDAEB'.substring(0,Math.abs(signature))
-            when @signature <= 0 then 'BEADGCF'.substring(0,Math.abs(signature))
-            else ''
+            when @signature > 0 then 'FCGDAEB'.substring(0, Math.abs(signature))
+            when @signature <= 0 then 'BEADGCF'.substring(0, Math.abs(signature))
     
     get_clef: ->
         return @clef
@@ -209,26 +208,18 @@ class GradualDynamic
         return "(change dynamic: #{@gdynamic})"
 
 class OctavationStart
-    constructor: () ->
-
     get_str: ->
         return "(8va)---{"
 
 class OctavationEnd
-    constructor: () ->
-
     get_str: ->
         return "}(8va)"
 
 class Segno
-    constructor: () ->
-
     get_str: ->
         return "(segno)"
 
 class Coda
-    constructor: () ->
-
     get_str: ->
         return "(coda)"
 
@@ -239,20 +230,14 @@ class FromTo
         return "(#{@from}" + (if @to != undefined then " #{@to})" else ")")
 
 class PedalDown
-    constructor: () ->
-
     get_str: ->
         return '(pedal down)'
 
 class PedalUp
-    constructor: () ->
-
     get_str: ->
         return '(pedal up)'
 
 class Newline
-    constructor: ->
-
     get_str: ->
         return '(newline)'
 
