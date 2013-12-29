@@ -1,7 +1,7 @@
-_site/*
-src/js/presto.js
-src/js/presto.min.js
-src/js/presto.coffee
-src/css/style.css
-src/js/src/presto.coffee
-src/js/_site
+web/_site/*
+web/src/js/presto.js
+web/src/js/presto.min.js
+web/src/js/presto.coffee
+web/src/css/style.css
+web/src/js/src/presto.coffee
+web/src/js/_site
