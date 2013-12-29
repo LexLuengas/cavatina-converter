@@ -110,13 +110,13 @@ parse = (expr) ->
             continue
 
         else if token.charAt(0) in key_symbols
-            splitted_token = /^([\+_]+)((-*|=*)?)$/.exec(token)
-            if (splitted_token != null and clefs[splitted_token[1]] != undefined)
-                sign = if splitted_token[2].length == 0 then 0 else (if splitted_token[2].charAt(0) == '-' then -1 else 1)
-                new_key_signature = splitted_token[2].length * sign
+            split_token = /^([\+_]+)((-*|=*)?)$/.exec(token)
+            if (split_token != null and clefs[split_token[1]] != undefined)
+                sign = if split_token[2].length == 0 then 0 else (if split_token[2].charAt(0) == '-' then -1 else 1)
+                new_key_signature = split_token[2].length * sign
                 
-                tree.push (new KeySignature clefs[splitted_token[1]], new_key_signature)
-                current_key_signature = new KeySignature clefs[splitted_token[1]], new_key_signature
+                tree.push (new KeySignature clefs[split_token[1]], new_key_signature)
+                current_key_signature = new KeySignature clefs[split_token[1]], new_key_signature
                 continue
 
         else if token.charAt(0) == punctuation.timesig
