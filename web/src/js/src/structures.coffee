@@ -170,15 +170,15 @@ class RepeatSectionEnd
         return "(repeat section end)"
         
 class KeySignature
-    constructor: (@clef, @signature) -> # signature: an integer in the interval [-7,7]
+    constructor: (@clef, @signature = 0) -> # signature: an integer in the interval [-7,7]
         @sharps_or_flats = switch
             when @signature > 0 then 'sharps'
             when @signature < 0 then 'flats'
             else 'sharps/flats'
-        @amount = Math.abs(@signature or 0)
+        @amount = Math.abs(@signature)
         @signature_notes = switch
-            when @signature > 0 then 'FCGDAEB'.substring(0, Math.abs(signature))
-            when @signature <= 0 then 'BEADGCF'.substring(0, Math.abs(signature))
+            when @signature > 0 then 'FCGDAEB'.substring(0, @amount)
+            when @signature <= 0 then 'BEADGCF'.substring(0, @amount)
     
     get_clef: ->
         return @clef
