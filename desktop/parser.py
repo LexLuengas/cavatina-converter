@@ -58,7 +58,7 @@ articulations = {
     '\'' : 'staccato',
     '\"' : 'tenuto',
     '\'\'' : 'staccatissimo',
-    '\"\"' : 'fermatta'
+    '\"\"' : 'fermata'
 }
 
 accidentals_short = {
@@ -223,10 +223,10 @@ pedal = {
     'up' : 'pp'
 }
 
-
 #--- STRUCTURES ---#
 
 import re
+from music21 import stream, note, chord, articulations, expressions, key, clef, meter
 
 class InvalidSymbolError(Exception):
     pass
@@ -340,7 +340,7 @@ class Note(TimeInterval):
         elif mark in ornaments_symbols: # base case
             self.note_diacritics.append(mark)
 
-    def get_name(self):
+    def __str__(self):
         note_accidentals = [accidentals_short[d] for d in self.note_diacritics if d in accidentals_short]
         note_articulations = [articulations[d] for d in self.note_diacritics if d in articulations]
         note_ornaments = [ornaments[d] for d in self.note_diacritics if d in ornaments]
@@ -353,6 +353,62 @@ class Note(TimeInterval):
             ((", " + ", ".join(note_articulations)) if len(note_articulations) > 0 else ""),
             ((", " + ", ".join(note_ornaments)) if len(note_ornaments) > 0 else "")
             )
+    
+    def get_m21name(self):
+        return self.name + str(self.octave)
+    
+    def get_quarterLength(self):
+        return self.length * 0.5
+        
+    def get_m21accidental(self):
+        accidentals_m21 = {
+            '-' : 'flat',
+            '=' : 'sharp',
+            '--' : 'double-flat',
+            '==' : 'double-sharp',
+            '-=' : 'natural',
+            '=-' : 'natural'
+        }
+        
+        return next((accidentals_m21[x] for x in self.note_diacritics if x in accidentals_m21), None)
+    
+    def get_m21articulations(self):
+        articulations_m21 = {
+            '\'' : articulations.Staccato,
+            '\"' : articulations.Tenuto,
+            '\'\'' : articulations.Staccatissimo,
+        }
+        
+        try:
+            artic = [next((articulations_m21[x] for x in self.note_diacritics if x in articulations_m21))]
+        except StopIteration:
+            artic = []
+        if accent_mark in self.note_diacritics:
+            artic.append(articulations.Accent)
+            
+        return artic # a list of abstract music21.articulations classes
+    
+    def get_m21expressions(self):
+        expressions_m21 = {
+            '[' : expressions.Mordent,
+            '{' : expressions.Turn,
+            '[`' : expressions.InvertedMordent,
+            '{`' : expressions.InvertedTurn,
+            '[[' : expressions.Trill,
+            '[[[' : expressions.Trill,
+            '[[[[' : expressions.Trill,
+            '[[[[[' : expressions.Trill,
+            '[[[[[[' : expressions.Trill
+        }
+        
+        try:
+            expr = [next((expressions_m21[x] for x in self.note_diacritics if x in expressions_m21))]
+        except StopIteration:
+            expr = []
+        if '\"\"' in self.note_diacritics:
+            expr.append(expressions.Fermata)
+            
+        return expr
 
 class Chord(object):
     def __init__(self, notes): # a list of Note objects
@@ -361,16 +417,25 @@ class Chord(object):
 
     def add_arpeggio(self):
         self.arpeggio = True
+    
+    def __iter__(self):
+        return iter(self.notes)
+    
+    def __len__(self):
+        return len(self.notes)
+    
+    def __getitem__(self,i):
+        return self.notes[i]
 
-    def get_str(self):
-        notes = '; '.join([note.get_name() for note in self.notes])
+    def __str__(self):
+        notes = '; '.join([str(note) for note in self.notes])
         if self.arpeggio:
             return "chord [arpeggio]({})".format(notes)
         else:
             return "chord ({})".format(notes)
 
 class Rest(TimeInterval):
-    def get_str(self):
+    def __str__(self):
         return "(rest [{}/{}])".format(self.length,self.denominator)
         
 
@@ -378,43 +443,44 @@ class Splitter(object):
     def __init__(self, length):
         self.length = length
 
-    def get_str(self):
+    def __str__(self):
         return "space ({}/4)".format(self.length)
 
 class MeasureEnd(object):
-    def get_str(self):
+    def __str__(self):
         return "(measure end)"
 
 class SectionEnd(object):
-    def get_str(self):
+    def __str__(self):
         return "(section end)"
 
 class End(object):
-    def get_str(self):
+    def __str__(self):
         return "(end)"
 
 class RepeatFrom(object):
-    def get_str(self):
+    def __str__(self):
         return "||:"
 
 class RepeatTo(object):
-    def get_str(self):
+    def __str__(self):
         return ":||"
 
 class RepeatSectionStart(object):
     def __init__(self, n):
         self.n = n
     
-    def get_str(self):
+    def __str__(self):
         return "({}th repeat section start)".format(self.n)
 
 class RepeatSectionEnd(object):
-    def get_str(self):
+    def __str__(self):
         return "(repeat section end)"
         
 class KeySignature(object):
     def __init__(self, clef, signature=0): # signature: an integer in the interval [-7,7]
         self.clef = clef
+        self.signature = signature
         
         if signature > 0:
             self.sharps_or_flats = 'sharps'
@@ -436,71 +502,85 @@ class KeySignature(object):
     def get_signature_notes(self):
         return self.signature_notes
 
-    def get_str(self):
+    def __str__(self):
         return "(clef {}, {} {})".format(self.clef, self.amount, self.sharps_or_flats)
+    
+    def get_m21clef(self):
+        m21clefs = {
+            'G' : clef.TrebleClef,
+            'F' : clef.BassClef,
+            'C' : clef.AltoClef
+        }
+        
+        return m21clefs[self.clef]
+    
+    def getm21signature(self):
+        return self.signature
 
 class TimeSignature(object):
     def __init__(self, numerator, denominator):
         self.numerator = numerator
         self.denominator = denominator
 
-    def get_str(self):
+    def __str__(self):
         return "(timesig {} / {})".format(self.numerator, self.denominator)
+    
+    def get_m21fractionalTime(self):
+        return str(self.numerator) + '/' + str(self.denominator)
 
 class Dynamic(object):
     def __init__(self, dynamic):
         self.dynamic = dynamic
 
-    def get_str(self):
+    def __str__(self):
         return "(dynamic: {})".format(self.dynamic)
 
 class GradualDynamic(object):
     def __init__(self, gdynamic):
         self.gdynamic = gdynamic
 
-    def get_str(self):
+    def __str__(self):
         return "(change dynamic: {})".format(self.gdynamic)
 
 class OctavationStart(object):
-    def get_str(self):
+    def __str__(self):
         return "(8va)---{"
 
 class OctavationEnd(object):
-    def get_str(self):
+    def __str__(self):
         return "}(8va)"
 
 class Segno(object):
-    def get_str(self):
+    def __str__(self):
         return "(segno)"
 
 class Coda(object):
-    def get_str(self):
+    def __str__(self):
         return "(coda)"
 
 class FromTo(object):
-    def __init__(self, varfrom,varto=None):
+    def __init__(self, varfrom, varto=None):
         self.varfrom = varfrom
         self.varto = varto
 
-    def get_str(self):
+    def __str__(self):
         return "({}".format(self.varfrom) + (" {})".format(self.varto) if self.varto != None else ")")
 
 class PedalDown(object):
-    def get_str(self):
+    def __str__(self):
         return '(pedal down)'
 
 class PedalUp(object):
-    def get_str(self):
+    def __str__(self):
         return '(pedal up)'
 
 class Newline(object):
-    def get_str(self):
+    def __str__(self):
         return '(newline)'
 
 class ErrorSign(object):
-    def get_str(self):
+    def __str__(self):
         return '(error symbol)'
-
 
 #--- SYNTAX ---#
 
@@ -556,13 +636,14 @@ def tokenize(expr):
                     previous == '~121' and current == '6'
                 )
             ) and (
-                stack[-1] in clefs or
+                len(stack) > 0 and (
+                stack[-1][0] in clefs or
                 stack[-1] in [
                     punctuation['barline'],
                     punctuation['barline'],
                     punctuation['double_barline'],
                     punctuation['bold_double_barline']
-                ]
+                ])
             )
         ) or ( # chords
             current in chord_set and previous[0] in chord_set
@@ -570,8 +651,8 @@ def tokenize(expr):
             (   (current in all_diacritics) or
                 (current == operators['prolonger'] and not re.search('~[-=\'\"<>]*~', previous)) or # no more than 2 '~' for each note
                 (current == operators['inverter'] and re.search('[^\[](\[|\{)$', previous)) or # inverted ornaments
-                (current == '[' and (re.search('[^\[]\[{1,5}$', previous) or not re.search('\[',previous)) and not re.search('\{',previous)) or # mordent, trills, no double ornamentation
-                (current == '{' and not re.search('\[|\{',previous)) # grupetto, no double ornamentation
+                (current == '[' and (re.search('[^\[]\[{1,5}$', previous) or not re.search('\[', previous)) and not re.search('\{', previous)) or # mordent, trills, no double ornamentation
+                (current == '{' and not re.search('\[|\{', previous)) # grupetto, no double ornamentation
             ) and (
                 previous[0] in note_range
             )
@@ -712,7 +793,7 @@ def parse(expr):
             continue
 
         elif token == '..' and not isinstance(tree[-1], Chord): # internally used to create beams between eighth notes
-            tree.append ( ErrorSign() )
+            tree.append( ErrorSign() )
             continue
         
         elif token[0] in rests:
@@ -748,3 +829,91 @@ def parse(expr):
             tree.append( Chord(chord_notes) )
 
     return tree
+
+from music21 import stream, note, chord, articulations, expressions, key, meter
+
+def create_m21Note(nobj):
+    n = note.Note(nobj.get_m21name(), quarterLength = nobj.get_quarterLength())
+    n.accidental = nobj.get_m21accidental()
+    n.articulations = [a() for a in nobj.get_m21articulations()]
+    n.expressions = [e() for e in nobj.get_m21expressions()]
+    return n
+    
+def extractMergedDiacritics(n1, n2):
+    artic = n1.articulations
+    for a in n2.articulations:
+        if a not in n1.articulations:
+            n1.articulations.append(a)
+    n1.articulations = []
+    n2.articulations = []
+    
+    expre = n1.expressions
+    for a in n2.expressions:
+        if a not in n1.expressions:
+            n1.expressions.append(a)
+    n1.expressions = []
+    n2.expressions = []
+    
+    return [artic, expre]
+
+def translateToMusic21(tree):
+    part = stream.Part()
+    part.append(stream.Measure())
+    currentMeasure = part[-1] # currentMeasure is a Measure object that is already contained in part
+    
+    for structure in tree:
+        if isinstance(structure, MeasureEnd):
+            part.append( stream.Measure() )
+            currentMeasure = part[-1]
+            
+        if isinstance(structure, Chord):
+            if len(structure) > 1:
+                noteList = []
+                for nobj in structure:
+                    n = create_m21Note(nobj)
+                    noteList.append(n)
+                c = chord.Chord(noteList)
+                # transfer first-note and last-note diacritics to chord diacritics
+                chordArticulations, chordExpressions = extractMergedDiacritics(c[0], c[-1])
+                c.articulations = chordArticulations
+                c.expressions = chordExpressions
+                
+                currentMeasure.append( c )
+            else:
+                currentMeasure.append( create_m21Note(structure[0]) )
+                
+        if isinstance(structure, KeySignature):
+            currentMeasure.clef = structure.get_m21clef()() # instantiation
+            currentMeasure.insert(0.0, key.KeySignature(structure.getm21signature()) )
+        
+        if isinstance(structure, TimeSignature):
+            currentMeasure.insert(0.0, meter.TimeSignature(structure.get_m21fractionalTime()) )
+            
+    # Clean-up
+    if type(part[-1]) is stream.Measure and len(part[-1]) == 0:
+        silent = part.pop(-1)
+        
+    return part
+    
+
+def writeStream(m21stream, format='midi', wrtpath=None):
+    """
+    Write out Music21 stream in a given format. If wrtpath is not specified
+    the file is written in the current working directory (as 'untitled.ext')
+    
+    The possible output formats are
+        musicxml lily(pond) midi
+    """
+    import os
+    from music21.common import findFormat
+    
+    fmt, ext = findFormat(format)
+    
+    if not wrtpath:
+        wrtpath = os.path.join(os.getcwd(), 'untitled' + ext)
+    if os.path.isdir(wrtpath):
+        wrtpath = os.path.join(wrtpath, 'untitled' + ext)
+        
+    m21stream.write(format, wrtpath)
+              
+            

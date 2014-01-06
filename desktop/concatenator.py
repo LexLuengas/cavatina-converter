@@ -1,7 +1,7 @@
 import fileinput
 from os.path import join
 
-file_names = ['semantics.py','symbols.py','structures.py','syntax.py']
+file_names = ['semantics.py', 'symbols.py', 'structures.py', 'syntax.py', 'translateToMusic21.py']
 source_dir = 'src'
 
 dir_collection = [join(source_dir, n) for n in file_names]

@@ -58,7 +58,7 @@ articulations = {
     '\'' : 'staccato',
     '\"' : 'tenuto',
     '\'\'' : 'staccatissimo',
-    '\"\"' : 'fermatta'
+    '\"\"' : 'fermata'
 }
 
 accidentals_short = {

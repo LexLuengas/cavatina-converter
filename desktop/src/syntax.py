@@ -1,5 +1,4 @@
 
-
 #--- SYNTAX ---#
 
 def get_pitch(symbol):
@@ -54,13 +53,14 @@ def tokenize(expr):
                     previous == '~121' and current == '6'
                 )
             ) and (
-                stack[-1] in clefs or
+                len(stack) > 0 and (
+                stack[-1][0] in clefs or
                 stack[-1] in [
                     punctuation['barline'],
                     punctuation['barline'],
                     punctuation['double_barline'],
                     punctuation['bold_double_barline']
-                ]
+                ])
             )
         ) or ( # chords
             current in chord_set and previous[0] in chord_set
@@ -68,8 +68,8 @@ def tokenize(expr):
             (   (current in all_diacritics) or
                 (current == operators['prolonger'] and not re.search('~[-=\'\"<>]*~', previous)) or # no more than 2 '~' for each note
                 (current == operators['inverter'] and re.search('[^\[](\[|\{)$', previous)) or # inverted ornaments
-                (current == '[' and (re.search('[^\[]\[{1,5}$', previous) or not re.search('\[',previous)) and not re.search('\{',previous)) or # mordent, trills, no double ornamentation
-                (current == '{' and not re.search('\[|\{',previous)) # grupetto, no double ornamentation
+                (current == '[' and (re.search('[^\[]\[{1,5}$', previous) or not re.search('\[', previous)) and not re.search('\{', previous)) or # mordent, trills, no double ornamentation
+                (current == '{' and not re.search('\[|\{', previous)) # grupetto, no double ornamentation
             ) and (
                 previous[0] in note_range
             )
@@ -210,7 +210,7 @@ def parse(expr):
             continue
 
         elif token == '..' and not isinstance(tree[-1], Chord): # internally used to create beams between eighth notes
-            tree.append ( ErrorSign() )
+            tree.append( ErrorSign() )
             continue
         
         elif token[0] in rests:

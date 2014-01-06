@@ -30,11 +30,11 @@ tokenize = (expr) ->
             (current == key_symbols[0] and previous == key_symbols[1]) or
             (current == key_symbols[1] and previous == key_symbols[0])
         ) or ( # key signature
-            clefs[previous.charAt(0)] != undefined and
+            previous.charAt(0) in Object.keys(clefs) and
             current in accidentals_symbols and
             (not /-|=/g.test(previous) or previous.match(/-|=/g).length < 7) and
             (
-                clefs[previous.charAt(previous.length - 1)] != undefined or
+                previous.charAt(previous.length - 1) in Object.keys(clefs) or
                 (current == accidentals_symbols[0] and previous.charAt(previous.length - 1) == accidentals_symbols[0]) or
                 (current == accidentals_symbols[1] and previous.charAt(previous.length - 1) == accidentals_symbols[1])
             )
@@ -51,13 +51,14 @@ tokenize = (expr) ->
                     previous == '~121' and current == '6'
                 )
             ) and (
-                clefs[stack[stack.length - 1]] != undefined or
+                stack.length > 0 and (
+                stack[stack.length - 1].charAt(0) in Object.keys(clefs) or
                 stack[stack.length - 1] in [
                     punctuation.barline,
                     punctuation.barline,
                     punctuation.double_barline,
                     punctuation.bold_double_barline
-                ]
+                ])
             )
         ) or ( # chords
             current in chord_set and previous.charAt(0) in chord_set
@@ -111,7 +112,7 @@ parse = (expr) ->
 
         else if token.charAt(0) in key_symbols
             split_token = /^([\+_]+)((-*|=*)?)$/.exec(token)
-            if (split_token != null and clefs[split_token[1]] != undefined)
+            if (split_token != null and split_token[1] in Object.keys(clefs))
                 sign = if split_token[2].length == 0 then 0 else (if split_token[2].charAt(0) == '-' then -1 else 1)
                 new_key_signature = split_token[2].length * sign
                 
