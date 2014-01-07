@@ -8,7 +8,7 @@ range = [
     '890'
 ].join ''
 
-range_size = range.length
+eighth_note_range = range.length
 
 range += (range.substr 0, 21).toUpperCase()
 range += '!@#$%^&*()'

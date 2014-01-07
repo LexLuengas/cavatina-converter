@@ -8,23 +8,22 @@ MatchIndex = (regexpr,array) ->
 
 class TimeInterval
     constructor: (@length_exponent) ->
-        @length_base = 1 # by 1/8
         @denominator = 8
         @set_length_exponent(@length_exponent or 0)
 
     set_length_exponent: (length_exponent) ->
         @length_exponent = length_exponent
-        @length = @length_base * (Math.pow 2, @length_exponent)
+        @length = (Math.pow 2, @length_exponent)
 
     increase_length_exponent: ->
         @set_length_exponent(@length_exponent + 1)
 
     add_dot_length: ->
-        if @length_base * (Math.pow 2, @length_exponent) > 1
-            @length = 3 * @length_base * (Math.pow 2, @length_exponent-1)
+        if (Math.pow 2, @length_exponent) > 1
+            @length = 3 * (Math.pow 2, @length_exponent-1)
         else
             @denominator = 2 * @denominator
-            @length = 3 * @length_base * (Math.pow 2, @length_exponent)
+            @length = 3 * (Math.pow 2, @length_exponent)
 
 class Note extends TimeInterval
     constructor: (@pitch, @key_signature, @length_exponent) ->
@@ -40,9 +39,7 @@ class Note extends TimeInterval
                 @add_diacritical_mark('-') # bemol
 
     set_pitch: (pitch) ->
-        if pitch >= range_size
-            @length_base = 2
-        @pitch = pitch % range_size
+        @pitch = pitch % eighth_note_range
         @name = switch
             when @key_signature.get_clef() == 'G' then scale[@pitch % 7]
             when @key_signature.get_clef() == 'F' then scale[(@pitch + 2) % 7]

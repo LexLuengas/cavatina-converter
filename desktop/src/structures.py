@@ -16,23 +16,22 @@ def MatchIndex(regexpr,array):
 class TimeInterval(object):
     def __init__(self, length_exponent=0):
         self.length_exponent = length_exponent
-        self.length_base = 1 # by 1/8
         self.denominator = 8
         self.set_length_exponent(self.length_exponent)
 
     def set_length_exponent(self, length_exponent):
         self.length_exponent = length_exponent
-        self.length = self.length_base * (2 ** self.length_exponent)
+        self.length = 2 ** self.length_exponent
 
     def increase_length_exponent(self):
         self.set_length_exponent(self.length_exponent + 1)
 
     def add_dot_length(self):
-        if self.length_base * (2 ** self.length_exponent) > 1:
-            self.length = 3 * self.length_base * (2 ** (self.length_exponent-1))
+        if 2 ** self.length_exponent > 1:
+            self.length = 3 * (2 ** (self.length_exponent-1))
         else:
             self.denominator = 2 * self.denominator
-            self.length = 3 * self.length_base * (2 ** self.length_exponent)
+            self.length = 3 * (2 ** self.length_exponent)
     
     def get_quarterLength(self):
         return self.length * 0.5
@@ -41,8 +40,8 @@ class Note(TimeInterval):
     def __init__(self, pitch, key_signature, length_exponent=0):
         self.pitch = pitch
         self.key_signature = key_signature
-        super( Note,self ).__init__(length_exponent)
         self.set_pitch(self.pitch)
+        super(Note, self).__init__(length_exponent)
         
         self.note_diacritics = [] # list of strings containing all note alterations and note articulations as *input* symbols.
         
@@ -57,9 +56,7 @@ class Note(TimeInterval):
                 self.add_diacritical_mark('-') # bemol
 
     def set_pitch(self, pitch):
-        if pitch >= note_range_size:
-            self.length_base = 2
-        self.pitch = pitch % note_range_size
+        self.pitch = pitch % eighth_note_range
         cases_name = { # conditional assignment
             'G' : scale[self.pitch % 7],
             'F' : scale[(self.pitch + 2) % 7],

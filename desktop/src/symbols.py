@@ -12,7 +12,7 @@ note_range = ''.join([
     '890'
 ])
 
-note_range_size = len(note_range)
+eighth_note_range = len(note_range)
 
 note_range += note_range[:21].upper()
 note_range += '!@#$%^&*()'

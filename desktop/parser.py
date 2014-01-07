@@ -136,7 +136,7 @@ note_range = ''.join([
     '890'
 ])
 
-note_range_size = len(note_range)
+eighth_note_range = len(note_range)
 
 note_range += note_range[:21].upper()
 note_range += '!@#$%^&*()'
@@ -240,23 +240,22 @@ def MatchIndex(regexpr,array):
 class TimeInterval(object):
     def __init__(self, length_exponent=0):
         self.length_exponent = length_exponent
-        self.length_base = 1 # by 1/8
         self.denominator = 8
         self.set_length_exponent(self.length_exponent)
 
     def set_length_exponent(self, length_exponent):
         self.length_exponent = length_exponent
-        self.length = self.length_base * (2 ** self.length_exponent)
+        self.length = 2 ** self.length_exponent
 
     def increase_length_exponent(self):
         self.set_length_exponent(self.length_exponent + 1)
 
     def add_dot_length(self):
-        if self.length_base * (2 ** self.length_exponent) > 1:
-            self.length = 3 * self.length_base * (2 ** (self.length_exponent-1))
+        if 2 ** self.length_exponent > 1:
+            self.length = 3 * (2 ** (self.length_exponent-1))
         else:
             self.denominator = 2 * self.denominator
-            self.length = 3 * self.length_base * (2 ** self.length_exponent)
+            self.length = 3 * (2 ** self.length_exponent)
     
     def get_quarterLength(self):
         return self.length * 0.5
@@ -265,7 +264,7 @@ class Note(TimeInterval):
     def __init__(self, pitch, key_signature, length_exponent=0):
         self.pitch = pitch
         self.key_signature = key_signature
-        super( Note,self ).__init__(length_exponent)
+        super(Note, self).__init__(length_exponent)
         self.set_pitch(self.pitch)
         
         self.note_diacritics = [] # list of strings containing all note alterations and note articulations as *input* symbols.
@@ -281,9 +280,7 @@ class Note(TimeInterval):
                 self.add_diacritical_mark('-') # bemol
 
     def set_pitch(self, pitch):
-        if pitch >= note_range_size:
-            self.length_base = 2
-        self.pitch = pitch % note_range_size
+        self.pitch = pitch % eighth_note_range
         cases_name = { # conditional assignment
             'G' : scale[self.pitch % 7],
             'F' : scale[(self.pitch + 2) % 7],
@@ -822,7 +819,11 @@ def parse(expr):
         for symbol in token:
             try:
                 note_pitch = get_pitch(symbol)
-                chord_notes.append( Note(note_pitch, current_key_signature) )
+                if note_pitch >= eighth_note_range: # quarter notes
+                    chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=1) )
+                else: # eighth notes
+                    chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=0) )
+                
             except InvalidSymbolError:
                 if symbol == operators['prolonger']:
                     chord_notes[-1].increase_length_exponent()
@@ -913,7 +914,8 @@ def translateToMusic21(tree):
         
         # (barlines)
         if isinstance(structure, MeasureEnd):
-            insertNewMeasure()
+            if len(measure['current']) > 0:
+                insertNewMeasure()
         
         if isinstance(structure, SectionEnd):
             measure['current'].append( bar.BarLine(style='double') )
@@ -950,7 +952,7 @@ def translateToMusic21(tree):
         if isinstance(structure, RepeatFrom):
             if not isinstance(measure['current'][-1], bar.Repeat):
                 insertNewMeasure()
-            measure['current'].append( bar.Repeat(direction='start') )
+            measure['current'].leftBarline = bar.Repeat(direction='start')
             
         if isinstance(structure, RepeatTo):
             if len(repeatEnds) != 0: # close last repeat section
@@ -958,7 +960,7 @@ def translateToMusic21(tree):
                 endMeasureNo = measure['current'].number
                 repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
             
-            measure['current'].append( bar.Repeat(direction='end', times=2) )
+            measure['current'].rightBarline = bar.Repeat(direction='end') # TODO: keep track of repetition number
             insertNewMeasure()
         
         if isinstance(structure, RepeatSectionStart):

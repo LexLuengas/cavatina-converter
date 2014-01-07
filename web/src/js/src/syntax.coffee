@@ -225,7 +225,11 @@ parse = (expr) ->
         for symbol in token
             try
                 note_pitch = get_pitch symbol
-                chord_notes.push (new Note note_pitch, current_key_signature)
+                if note_pitch >= eighth_note_range # quarter notes
+                    chord_notes.push (new Note note_pitch, current_key_signature, 1)
+                else # eighth notes
+                    chord_notes.push (new Note note_pitch, current_key_signature, 0)
+                
             catch error
                 if symbol == operators.prolonger
                     chord_notes[chord_notes.length - 1]

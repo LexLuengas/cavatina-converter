@@ -71,7 +71,8 @@ def translateToMusic21(tree):
         
         # (barlines)
         if isinstance(structure, MeasureEnd):
-            insertNewMeasure()
+            if len(measure['current']) > 0:
+                insertNewMeasure()
         
         if isinstance(structure, SectionEnd):
             measure['current'].append( bar.BarLine(style='double') )
@@ -108,7 +109,7 @@ def translateToMusic21(tree):
         if isinstance(structure, RepeatFrom):
             if not isinstance(measure['current'][-1], bar.Repeat):
                 insertNewMeasure()
-            measure['current'].append( bar.Repeat(direction='start') )
+            measure['current'].leftBarline = bar.Repeat(direction='start')
             
         if isinstance(structure, RepeatTo):
             if len(repeatEnds) != 0: # close last repeat section
@@ -116,7 +117,7 @@ def translateToMusic21(tree):
                 endMeasureNo = measure['current'].number
                 repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
             
-            measure['current'].append( bar.Repeat(direction='end', times=2) )
+            measure['current'].rightBarline = bar.Repeat(direction='end') # TODO: keep track of repetition number
             insertNewMeasure()
         
         if isinstance(structure, RepeatSectionStart):
