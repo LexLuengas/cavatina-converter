@@ -33,6 +33,9 @@ class TimeInterval(object):
         else:
             self.denominator = 2 * self.denominator
             self.length = 3 * self.length_base * (2 ** self.length_exponent)
+    
+    def get_quarterLength(self):
+        return self.length * 0.5
 
 class Note(TimeInterval):
     def __init__(self, pitch, key_signature, length_exponent=0):
@@ -132,9 +135,6 @@ class Note(TimeInterval):
     
     def get_m21name(self):
         return self.name + str(self.octave)
-    
-    def get_quarterLength(self):
-        return self.length * 0.5
         
     def get_m21accidental(self):
         accidentals_m21 = {
@@ -212,8 +212,7 @@ class Chord(object):
 
 class Rest(TimeInterval):
     def __str__(self):
-        return "(rest [{}/{}])".format(self.length,self.denominator)
-        
+        return "(rest [{}/{}])".format(self.length, self.denominator)
 
 class Splitter(object):
     def __init__(self, length):
@@ -248,6 +247,9 @@ class RepeatSectionStart(object):
     
     def __str__(self):
         return "({}th repeat section start)".format(self.n)
+    
+    def get_m21no(self):
+        return self.n
 
 class RepeatSectionEnd(object):
     def __str__(self):
@@ -310,6 +312,9 @@ class Dynamic(object):
 
     def __str__(self):
         return "(dynamic: {})".format(self.dynamic)
+    
+    def get_m21dynamic(self):
+        return self.dynamic
 
 class GradualDynamic(object):
     def __init__(self, gdynamic):
@@ -317,6 +322,9 @@ class GradualDynamic(object):
 
     def __str__(self):
         return "(change dynamic: {})".format(self.gdynamic)
+    
+    def get_name(self):
+        return self.gdynamic
 
 class OctavationStart(object):
     def __str__(self):
@@ -341,6 +349,9 @@ class FromTo(object):
 
     def __str__(self):
         return "({}".format(self.varfrom) + (" {})".format(self.varto) if self.varto != None else ")")
+    
+    def get_m21parameters(self):
+        return [self.varfrom, self.varto]
 
 class PedalDown(object):
     def __str__(self):

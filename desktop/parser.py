@@ -79,8 +79,8 @@ dynamics = {
     '||' : 'ff',
     '\\\\\\' : 'ppp',
     '|||' : 'fff',
-    '\\\\|' : 'sfz',
-    '||\\' : 'sfz',
+    '\\\\|' : 'sf',
+    '||\\' : 'sf',
     '\\\\`' : 'fp',
     '\\\\\\|' : 'fp',
     '||`' : 'fp',
@@ -257,6 +257,9 @@ class TimeInterval(object):
         else:
             self.denominator = 2 * self.denominator
             self.length = 3 * self.length_base * (2 ** self.length_exponent)
+    
+    def get_quarterLength(self):
+        return self.length * 0.5
 
 class Note(TimeInterval):
     def __init__(self, pitch, key_signature, length_exponent=0):
@@ -356,9 +359,6 @@ class Note(TimeInterval):
     
     def get_m21name(self):
         return self.name + str(self.octave)
-    
-    def get_quarterLength(self):
-        return self.length * 0.5
         
     def get_m21accidental(self):
         accidentals_m21 = {
@@ -436,8 +436,7 @@ class Chord(object):
 
 class Rest(TimeInterval):
     def __str__(self):
-        return "(rest [{}/{}])".format(self.length,self.denominator)
-        
+        return "(rest [{}/{}])".format(self.length, self.denominator)
 
 class Splitter(object):
     def __init__(self, length):
@@ -472,6 +471,9 @@ class RepeatSectionStart(object):
     
     def __str__(self):
         return "({}th repeat section start)".format(self.n)
+    
+    def get_m21no(self):
+        return self.n
 
 class RepeatSectionEnd(object):
     def __str__(self):
@@ -534,6 +536,9 @@ class Dynamic(object):
 
     def __str__(self):
         return "(dynamic: {})".format(self.dynamic)
+    
+    def get_m21dynamic(self):
+        return self.dynamic
 
 class GradualDynamic(object):
     def __init__(self, gdynamic):
@@ -541,6 +546,9 @@ class GradualDynamic(object):
 
     def __str__(self):
         return "(change dynamic: {})".format(self.gdynamic)
+    
+    def get_name(self):
+        return self.gdynamic
 
 class OctavationStart(object):
     def __str__(self):
@@ -565,6 +573,9 @@ class FromTo(object):
 
     def __str__(self):
         return "({}".format(self.varfrom) + (" {})".format(self.varto) if self.varto != None else ")")
+    
+    def get_m21parameters(self):
+        return [self.varfrom, self.varto]
 
 class PedalDown(object):
     def __str__(self):
@@ -830,10 +841,10 @@ def parse(expr):
 
     return tree
 
-from music21 import stream, note, chord, articulations, expressions, key, meter
+from music21 import stream, note, chord, articulations, expressions, key, meter, bar, dynamics, repeat
 
 def create_m21Note(nobj):
-    n = note.Note(nobj.get_m21name(), quarterLength = nobj.get_quarterLength())
+    n = note.Note(nobj.get_m21name(), quarterLength=nobj.get_quarterLength())
     n.accidental = nobj.get_m21accidental()
     n.articulations = [a() for a in nobj.get_m21articulations()]
     n.expressions = [e() for e in nobj.get_m21expressions()]
@@ -858,14 +869,19 @@ def extractMergedDiacritics(n1, n2):
 
 def translateToMusic21(tree):
     part = stream.Part()
-    part.append(stream.Measure())
-    currentMeasure = part[-1] # currentMeasure is a Measure object that is already contained in part
+    part.append(stream.Measure()) # measure['current'] is always already contained in part
+    measure = {'current' : part[-1], 'counter' : 0} # beacause measure numbers are not set automatically
+                                                    # (dict as work-around for *nonlocal* statement of Python 3.*)
+    repeatEnds = []
+    
+    def insertNewMeasure():
+        part.append( stream.Measure() )
+        measure['current'] = part[-1]
+        measure['counter'] += 1
+        measure['current'].number = measure['counter']
     
     for structure in tree:
-        if isinstance(structure, MeasureEnd):
-            part.append( stream.Measure() )
-            currentMeasure = part[-1]
-            
+        # (time structures)
         if isinstance(structure, Chord):
             if len(structure) > 1:
                 noteList = []
@@ -878,16 +894,117 @@ def translateToMusic21(tree):
                 c.articulations = chordArticulations
                 c.expressions = chordExpressions
                 
-                currentMeasure.append( c )
+                measure['current'].append( c )
             else:
-                currentMeasure.append( create_m21Note(structure[0]) )
+                measure['current'].append( create_m21Note(structure[0]) )
                 
+        if isinstance(structure, Rest):
+            measure['current'].append( note.Rest(quarterLength=structure.get_quarterLength()) )
+        # (end time structures)
+        
+        # (signatures)
         if isinstance(structure, KeySignature):
-            currentMeasure.clef = structure.get_m21clef()() # instantiation
-            currentMeasure.insert(0.0, key.KeySignature(structure.getm21signature()) )
+            measure['current'].clef = structure.get_m21clef()() # instantiation
+            measure['current'].insert(0.0, key.KeySignature(structure.getm21signature()) )
         
         if isinstance(structure, TimeSignature):
-            currentMeasure.insert(0.0, meter.TimeSignature(structure.get_m21fractionalTime()) )
+            measure['current'].insert(0.0, meter.TimeSignature(structure.get_m21fractionalTime()) )
+        # (end signatures)
+        
+        # (barlines)
+        if isinstance(structure, MeasureEnd):
+            insertNewMeasure()
+        
+        if isinstance(structure, SectionEnd):
+            measure['current'].append( bar.BarLine(style='double') )
+            insertNewMeasure()
+        
+        if isinstance(structure, End):
+            measure['current'].append( bar.BarLine(style='final') )
+            insertNewMeasure()
+        # (end barlines)
+        
+        # (dynamics)
+        if isinstance(structure, Dynamic):
+            if isinstance(measure['current'][-1], chord.Chord):
+                lastChordOffset = measure['current'][-1].offset
+                measure['current'].insert(lastChordOffset, dynamics.Dynamic(structure.get_m21dynamic))
+            else:
+                measure['current'].append( dynamics.Dynamic(structure.get_m21dynamic) )
+        
+        if isinstance(structure, GradualDynamic):
+            if isinstance(measure['current'][-1], chord.Chord):
+                lastChordOffset = measure['current'][-1].offset
+                if structure.get_name() == 'crescendo':
+                    measure['current'].insert(lastChordOffset, dynamics.Crescendo() )
+                else:
+                    measure['current'].insert(lastChordOffset, dynamics.Diminuendo() )
+            else:
+                if structure.get_name() == 'crescendo':
+                    measure['current'].append( dynamics.Crescendo() )
+                else:
+                    measure['current'].append( dynamics.Diminuendo() )
+        # (end dynamics)
+        
+        # (repeat structures)
+        if isinstance(structure, RepeatFrom):
+            if not isinstance(measure['current'][-1], bar.Repeat):
+                insertNewMeasure()
+            measure['current'].append( bar.Repeat(direction='start') )
+            
+        if isinstance(structure, RepeatTo):
+            if len(repeatEnds) != 0: # close last repeat section
+                startMeasureNo = repeatEnds.pop()
+                endMeasureNo = measure['current'].number
+                repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
+            
+            measure['current'].append( bar.Repeat(direction='end', times=2) )
+            insertNewMeasure()
+        
+        if isinstance(structure, RepeatSectionStart):
+            if len(repeatEnds) != 0: # close last repeat section
+                startMeasureNo = repeatEnds.pop()
+                endMeasureNo = measure['current'].number
+                repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
+            
+            if len(measure['current']) == 0:
+                repeatEnds.append(measure['current'].number)
+            else:
+                repeatEnds.append(measure['current'].number + 1)
+            
+        if isinstance(structure, RepeatSectionEnd):
+            startMeasureNo = repeatEnds.pop()
+            if len(measure['current']) == 0:
+                endMeasureNo = part[-2].number
+            else:
+                endMeasureNo = measure['current'].number
+            endingNo = structure.get_m21no()
+            repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
+            
+        if isinstance(structure, Coda):
+            measure['current'].append( repeat.Coda() )
+        
+        if isinstance(structure, Segno):
+            measure['current'].append( repeat.Segno() )
+        
+        if isinstance(structure, FromTo):
+            repfrom, repto = structure.get_m21parameters()
+            
+            if repfrom == 'D.C.':
+                if repto == None:
+                    measure['current'].append( repeat.DaCapo() )
+                if repto == 'al Coda':
+                    measure['current'].append( repeat.DaCapoAlCoda() )
+                if repto == 'al Fine':
+                    measure['current'].append( repeat.DaCapoAlFine() )
+            if repfrom == 'D.S.':
+                if repto == None:
+                    measure['current'].append( repeat.DalSegno() )
+                if repto == 'al Coda':
+                    measure['current'].append( repeat.DalSegnoAlCoda() )
+                if repto == 'al Fine':
+                    measure['current'].append( repeat.DalSegnoAlFine() )
+        # (end repeat structures)
             
     # Clean-up
     if type(part[-1]) is stream.Measure and len(part[-1]) == 0:
@@ -915,5 +1032,28 @@ def writeStream(m21stream, format='midi', wrtpath=None):
         wrtpath = os.path.join(wrtpath, 'untitled' + ext)
         
     m21stream.write(format, wrtpath)
+    
+
+if __name__ == '__main__':
+    import sys
+    
+    if len(sys.argv) >= 2:
+        t = parse(sys.argv[1])
+        s = translateToMusic21(t)
+        if len(sys.argv) == 2:
+            writeStream(s)
+        if len(sys.argv) == 3:
+            writeStream(s, format=sys.argv[2])
+    else:
+        print """Usage:
+    $ python parser.py [string] [format]\n
+Output path is current working directory.
+Test-strings:
+    '_----~34 a d g, sfh g j,'  Signatures & chords
+    ', a a- a--, g g= g==,'     Accidentals
+    ', a D g; d F d:'           Repetition markings"""
+        
+        
+        
               
             
