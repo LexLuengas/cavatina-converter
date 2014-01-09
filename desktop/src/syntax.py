@@ -28,6 +28,12 @@ def tokenize(expr):
         ) or ( # double barline
             current == punctuation['barline'] and
             previous == punctuation['barline']
+        ) or ( # long barlines
+            (
+                current == '\\' and (previous in simple_punctuation or previous == ',\\')
+            ) or (
+                current == ',' and previous == ',\\'
+            )
         ) or ( # C-clef
             (current == key_symbols[0] and previous == key_symbols[1]) or
             (current == key_symbols[1] and previous == key_symbols[0])
@@ -44,7 +50,7 @@ def tokenize(expr):
             (
                 (
                     len(previous) <= 2 and
-                    previous[0] == punctuation['timesig'] and
+                    previous[0] == time_signature and
                     current in digits
                 ) or ( # case 12 is numumerator or 16 is denominator
                     len(previous) == 3 and
@@ -86,7 +92,10 @@ def tokenize(expr):
         ) or ( # pedal mark 'up'
             current == 'p' and previous == 'p'
         ) or ( # rest prolongation
-            current == operators['prolonger'] and re.search('(\]~{0,2}$)|(\}~{0,1}$)', previous)
+                (current == operators['prolonger'] and re.search('(\]~{0,2}$)|(\}~{0,1}$)', previous)
+            ) or (
+                current == rests[0] and previous == rests[0]
+            )
         ) or ( # error sign
             current == punctuation['bold_double_barline'] and previous == punctuation['bold_double_barline']
         ):
@@ -123,7 +132,7 @@ def parse(expr):
                 current_key_signature = KeySignature(clefs[split_token.group(1)], new_key_signature)
                 continue
 
-        elif token[0] == punctuation['timesig']:
+        elif token[0] == time_signature:
             if len(token) == 3:
                 tree.append( TimeSignature(token[1], token[2]) )
             elif (len(token) == 4 or len(token) == 5):
@@ -159,6 +168,34 @@ def parse(expr):
         elif token == punctuation['repeat_to']:
             tree.append( RepeatTo() )
             continue
+        
+        elif token == punctuation['long']['systemic_barline']:
+            tree.append( SystemicBarline() )
+            continue
+        
+        elif token == punctuation['long']['grand_staff']:
+            tree.append( GrandStaff() )
+            continue
+            
+        elif token == punctuation['long']['systemic_barline']:
+            tree.append( SystemicBarline() )
+            continue
+            
+        elif token in punctuation['long']['double_systemic_barline']:
+            tree.append( DoubleSystemicBarline() )
+            continue
+            
+        elif token == punctuation['long']['bold_systemic_barline']:
+            tree.append( BoldSystemicBarline() )
+            continue
+            
+        elif token == punctuation['long']['long_repeat_from']:
+            tree.append( LongRepeatFrom() )
+            continue
+            
+        elif token == punctuation['long']['long_repeat_to']:
+            tree.append( LongRepeatTo() )
+            continue
 
         elif token in repetition:
             if type(repetition[token]) is int:
@@ -169,7 +206,7 @@ def parse(expr):
 
         elif token in octavation:
             if type(octavation[token]) is int:
-                tree.append ( OctavationStart() )
+                tree.append ( OctavationStart(octavation[token]) )
             else:
                 tree.append( OctavationEnd() )
             continue
@@ -191,7 +228,7 @@ def parse(expr):
             continue
 
         elif token[0] in repeat_reference:
-            if len(token) > 0:
+            if len(token) > 1:
                 tree.append( FromTo(references[token[0]], references[token[1]]) )
             else:
                 tree.append( FromTo(references[token]) )
@@ -214,6 +251,10 @@ def parse(expr):
             continue
         
         elif token[0] in rests:
+            if token == ']]': # implicit prolongation
+                tree.append ( Rest(1) )
+                continue
+                
             for symbol in token:
                 if symbol == ']':
                     tree.append ( Rest(0) )

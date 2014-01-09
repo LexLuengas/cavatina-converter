@@ -26,6 +26,12 @@ tokenize = (expr) ->
         ) or ( # double barline
             current == punctuation.barline and
             previous == punctuation.barline
+        ) or ( # long barlines
+            (
+                current == '\\' and (previous in simple_punctuation or previous == ',\\')
+            ) or (
+                current == ',' and previous == ',\\'
+            )
         ) or ( # C-clef
             (current == key_symbols[0] and previous == key_symbols[1]) or
             (current == key_symbols[1] and previous == key_symbols[0])
@@ -42,7 +48,7 @@ tokenize = (expr) ->
             (
                 (
                     previous.length <= 2 and
-                    previous.charAt(0) == punctuation.timesig and
+                    previous.charAt(0) == time_signature and
                     current in digits
                 ) or ( # case 12 is numumerator or 16 is denominator
                     previous.length == 3 and
@@ -51,14 +57,17 @@ tokenize = (expr) ->
                     previous == '~121' and current == '6'
                 )
             ) and (
-                stack.length > 0 and (
-                stack[stack.length - 1].charAt(0) in Object.keys(clefs) or
-                stack[stack.length - 1] in [
-                    punctuation.barline,
-                    punctuation.barline,
-                    punctuation.double_barline,
-                    punctuation.bold_double_barline
-                ])
+                (
+                    stack.length > 0
+                ) and (
+                    stack[stack.length - 1].charAt(0) in Object.keys(clefs) or
+                    stack[stack.length - 1] in [
+                        punctuation.barline,
+                        punctuation.barline,
+                        punctuation.double_barline,
+                        punctuation.bold_double_barline
+                    ]
+                )
             )
         ) or ( # chords
             current in chord_set and previous.charAt(0) in chord_set
@@ -84,7 +93,11 @@ tokenize = (expr) ->
         ) or ( # pedal mark 'up'
             current == 'p' and previous == 'p'
         ) or ( # rest prolongation
-            current == operators.prolonger and /(\]~{0,2}$)|(\}~{0,1}$)/g.test(previous)
+            (
+                current == operators.prolonger and /(\]~{0,2}$)|(\}~{0,1}$)/g.test(previous)
+            ) or (
+                current == ']' and previous == ']'
+            )
         ) or ( # error sign
             current == punctuation.bold_double_barline and previous == punctuation.bold_double_barline
         )
@@ -120,7 +133,7 @@ parse = (expr) ->
                 current_key_signature = new KeySignature clefs[split_token[1]], new_key_signature
                 continue
 
-        else if token.charAt(0) == punctuation.timesig
+        else if token.charAt(0) == time_signature
             if token.length == 3
                 tree.push (new TimeSignature token.charAt(1), token.charAt(2))
             else if (token.length == 4 or token.length == 5)
@@ -155,6 +168,34 @@ parse = (expr) ->
 
         else if token == punctuation.repeat_to
             tree.push (new RepeatTo)
+            continue
+            
+        else if token == punctuation.long.systemic_barline
+            tree.push (new SystemicBarline)
+            continue
+        
+        else if token == punctuation.long.grand_staff
+            tree.push (new GrandStaff)
+            continue
+            
+        else if token == punctuation.long.systemic_barline
+            tree.push (new SystemicBarline)
+            continue
+            
+        else if token in punctuation.long.double_systemic_barline
+            tree.push (new DoubleSystemicBarline)
+            continue
+            
+        else if token == punctuation.long.bold_systemic_barline
+            tree.push (new BoldSystemicBarline)
+            continue
+            
+        else if token == punctuation.long.long_repeat_from
+            tree.push (new LongRepeatFrom)
+            continue
+            
+        else if token == punctuation.long.long_repeat_to
+            tree.push (new LongRepeatTo)
             continue
 
         else if repetition[token] != undefined
@@ -211,6 +252,10 @@ parse = (expr) ->
             continue
         
         else if token.charAt(0) in rests
+            if token == ']]'
+                tree.push (new Rest 1)
+                continue
+            
             for symbol in token
                 if symbol == ']'
                     tree.push (new Rest 0)

@@ -25,7 +25,7 @@ operators = {
 }
 
 punctuation = {
-    'splitters': [
+    'splitters': [ # TODO: Amend information loss (splitter length/size)
         ' ',
         '/',
         '//'
@@ -35,11 +35,29 @@ punctuation = {
     'barline': ',',
     'double_barline': ',,',
     'bold_double_barline': '.',
+    
     'repeat_from': ';',
     'repeat_to': ':',
     
-    'timesig': '~'
+    'long': {
+        'systemic_barline' : ',\\',
+        'grand_staff' : ',\\\\',
+        'double_systemic_barline' : [',,\\', ',\\,'],
+        'bold_systemic_barline' : '.\\',
+        'long_repeat_from' : ';\\',
+        'long_repeat_to' : ':\\'
+    }
 }
+
+simple_punctuation = [
+    ',',
+    '.',
+    ',,',
+    ';',
+    ':'
+]
+
+time_signature = '~'
 
 key_symbols = [
     '_', # G

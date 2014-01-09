@@ -2,7 +2,6 @@
 #--- STRUCTURES ---#
 
 import re
-from music21 import stream, note, chord, articulations, expressions, key, clef, meter
 
 class InvalidSymbolError(Exception):
     pass
@@ -146,10 +145,11 @@ class Note(TimeInterval):
         return next((accidentals_m21[x] for x in self.note_diacritics if x in accidentals_m21), None)
     
     def get_m21articulations(self):
+        from music21 import articulations as m21articulations
         articulations_m21 = {
-            '\'' : articulations.Staccato,
-            '\"' : articulations.Tenuto,
-            '\'\'' : articulations.Staccatissimo,
+            '\'' : m21articulations.Staccato,
+            '\"' : m21articulations.Tenuto,
+            '\'\'' : m21articulations.Staccatissimo,
         }
         
         try:
@@ -157,21 +157,22 @@ class Note(TimeInterval):
         except StopIteration:
             artic = []
         if accent_mark in self.note_diacritics:
-            artic.append(articulations.Accent)
+            artic.append(m21articulations.Accent)
             
         return artic # a list of abstract music21.articulations classes
     
     def get_m21expressions(self):
+        from music21 import expressions as m21expressions
         expressions_m21 = {
-            '[' : expressions.Mordent,
-            '{' : expressions.Turn,
-            '[`' : expressions.InvertedMordent,
-            '{`' : expressions.InvertedTurn,
-            '[[' : expressions.Trill,
-            '[[[' : expressions.Trill,
-            '[[[[' : expressions.Trill,
-            '[[[[[' : expressions.Trill,
-            '[[[[[[' : expressions.Trill
+            '[' : m21expressions.Mordent,
+            '{' : m21expressions.Turn,
+            '[`' : m21expressions.InvertedMordent,
+            '{`' : m21expressions.InvertedTurn,
+            '[[' : m21expressions.Trill,
+            '[[[' : m21expressions.Trill, # TODO: expressions.TrillExtension(<note.Note list>)
+            '[[[[' : m21expressions.Trill, # span = 2 notes
+            '[[[[[' : m21expressions.Trill, # span = 3 notes
+            '[[[[[[' : m21expressions.Trill # span = 4 notes
         }
         
         try:
@@ -179,7 +180,7 @@ class Note(TimeInterval):
         except StopIteration:
             expr = []
         if '\"\"' in self.note_diacritics:
-            expr.append(expressions.Fermata)
+            expr.append(m21expressions.Fermata)
             
         return expr
 
@@ -229,6 +230,19 @@ class SectionEnd(object):
 class End(object):
     def __str__(self):
         return "(end)"
+        
+class SystemicBarline(MeasureEnd):
+    pass
+
+class DoubleSystemicBarline(SectionEnd):
+    pass
+    
+class BoldSystemicBarline(End):
+    pass
+
+class GrandStaff(object):
+    def __str__(self):
+        return "(grand staff)"
 
 class RepeatFrom(object):
     def __str__(self):
@@ -237,6 +251,12 @@ class RepeatFrom(object):
 class RepeatTo(object):
     def __str__(self):
         return ":||"
+
+class LongRepeatFrom(RepeatFrom):
+    pass
+
+class LongRepeatTo(RepeatTo):
+    pass
 
 class RepeatSectionStart(object):
     def __init__(self, n):
@@ -281,10 +301,11 @@ class KeySignature(object):
         return "(clef {}, {} {})".format(self.clef, self.amount, self.sharps_or_flats)
     
     def get_m21clef(self):
+        from music21 import clef as m21clef
         m21clefs = {
-            'G' : clef.TrebleClef,
-            'F' : clef.BassClef,
-            'C' : clef.AltoClef
+            'G' : m21clef.TrebleClef,
+            'F' : m21clef.BassClef,
+            'C' : m21clef.AltoClef
         }
         
         return m21clefs[self.clef]
@@ -324,8 +345,14 @@ class GradualDynamic(object):
         return self.gdynamic
 
 class OctavationStart(object):
+    def __init__(self, octaveTranspositions=1):
+        self.octaveTranspositions = octaveTranspositions # for future integration of 'quindicesima'
+        
     def __str__(self):
-        return "(8va)---{"
+        if self.octaveTranspositions == 0:
+            return "(8va)"
+        else:
+            return "(8va[{}x])---{".format(self.octaveTranspositions)
 
 class OctavationEnd(object):
     def __str__(self):

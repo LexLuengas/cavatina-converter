@@ -34,7 +34,7 @@ repetition = {
 
 octavation = {
     'O' : 1,
-    'OO' : 1,
+    'OO' : 0,
     'O`' : 'end'
 }
 
@@ -149,7 +149,7 @@ operators = {
 }
 
 punctuation = {
-    'splitters': [
+    'splitters': [ # TODO: Amend information loss (splitter length/size)
         ' ',
         '/',
         '//'
@@ -159,11 +159,29 @@ punctuation = {
     'barline': ',',
     'double_barline': ',,',
     'bold_double_barline': '.',
+    
     'repeat_from': ';',
     'repeat_to': ':',
     
-    'timesig': '~'
+    'long': {
+        'systemic_barline' : ',\\',
+        'grand_staff' : ',\\\\',
+        'double_systemic_barline' : [',,\\', ',\\,'],
+        'bold_systemic_barline' : '.\\',
+        'long_repeat_from' : ';\\',
+        'long_repeat_to' : ':\\'
+    }
 }
+
+simple_punctuation = [
+    ',',
+    '.',
+    ',,',
+    ';',
+    ':'
+]
+
+time_signature = '~'
 
 key_symbols = [
     '_', # G
@@ -226,7 +244,6 @@ pedal = {
 #--- STRUCTURES ---#
 
 import re
-from music21 import stream, note, chord, articulations, expressions, key, clef, meter
 
 class InvalidSymbolError(Exception):
     pass
@@ -264,8 +281,8 @@ class Note(TimeInterval):
     def __init__(self, pitch, key_signature, length_exponent=0):
         self.pitch = pitch
         self.key_signature = key_signature
-        super(Note, self).__init__(length_exponent)
         self.set_pitch(self.pitch)
+        super(Note, self).__init__(length_exponent)
         
         self.note_diacritics = [] # list of strings containing all note alterations and note articulations as *input* symbols.
         
@@ -370,10 +387,11 @@ class Note(TimeInterval):
         return next((accidentals_m21[x] for x in self.note_diacritics if x in accidentals_m21), None)
     
     def get_m21articulations(self):
+        from music21 import articulations as m21articulations
         articulations_m21 = {
-            '\'' : articulations.Staccato,
-            '\"' : articulations.Tenuto,
-            '\'\'' : articulations.Staccatissimo,
+            '\'' : m21articulations.Staccato,
+            '\"' : m21articulations.Tenuto,
+            '\'\'' : m21articulations.Staccatissimo,
         }
         
         try:
@@ -381,21 +399,22 @@ class Note(TimeInterval):
         except StopIteration:
             artic = []
         if accent_mark in self.note_diacritics:
-            artic.append(articulations.Accent)
+            artic.append(m21articulations.Accent)
             
         return artic # a list of abstract music21.articulations classes
     
     def get_m21expressions(self):
+        from music21 import expressions as m21expressions
         expressions_m21 = {
-            '[' : expressions.Mordent,
-            '{' : expressions.Turn,
-            '[`' : expressions.InvertedMordent,
-            '{`' : expressions.InvertedTurn,
-            '[[' : expressions.Trill,
-            '[[[' : expressions.Trill,
-            '[[[[' : expressions.Trill,
-            '[[[[[' : expressions.Trill,
-            '[[[[[[' : expressions.Trill
+            '[' : m21expressions.Mordent,
+            '{' : m21expressions.Turn,
+            '[`' : m21expressions.InvertedMordent,
+            '{`' : m21expressions.InvertedTurn,
+            '[[' : m21expressions.Trill,
+            '[[[' : m21expressions.Trill, # TODO: expressions.TrillExtension(<note.Note list>)
+            '[[[[' : m21expressions.Trill, # span = 2 notes
+            '[[[[[' : m21expressions.Trill, # span = 3 notes
+            '[[[[[[' : m21expressions.Trill # span = 4 notes
         }
         
         try:
@@ -403,7 +422,7 @@ class Note(TimeInterval):
         except StopIteration:
             expr = []
         if '\"\"' in self.note_diacritics:
-            expr.append(expressions.Fermata)
+            expr.append(m21expressions.Fermata)
             
         return expr
 
@@ -453,6 +472,19 @@ class SectionEnd(object):
 class End(object):
     def __str__(self):
         return "(end)"
+        
+class SystemicBarline(MeasureEnd):
+    pass
+
+class DoubleSystemicBarline(SectionEnd):
+    pass
+    
+class BoldSystemicBarline(End):
+    pass
+
+class GrandStaff(object):
+    def __str__(self):
+        return "(grand staff)"
 
 class RepeatFrom(object):
     def __str__(self):
@@ -461,6 +493,12 @@ class RepeatFrom(object):
 class RepeatTo(object):
     def __str__(self):
         return ":||"
+
+class LongRepeatFrom(RepeatFrom):
+    pass
+
+class LongRepeatTo(RepeatTo):
+    pass
 
 class RepeatSectionStart(object):
     def __init__(self, n):
@@ -505,10 +543,11 @@ class KeySignature(object):
         return "(clef {}, {} {})".format(self.clef, self.amount, self.sharps_or_flats)
     
     def get_m21clef(self):
+        from music21 import clef as m21clef
         m21clefs = {
-            'G' : clef.TrebleClef,
-            'F' : clef.BassClef,
-            'C' : clef.AltoClef
+            'G' : m21clef.TrebleClef,
+            'F' : m21clef.BassClef,
+            'C' : m21clef.AltoClef
         }
         
         return m21clefs[self.clef]
@@ -548,8 +587,14 @@ class GradualDynamic(object):
         return self.gdynamic
 
 class OctavationStart(object):
+    def __init__(self, octaveTranspositions=1):
+        self.octaveTranspositions = octaveTranspositions # for future integration of 'quindicesima'
+        
     def __str__(self):
-        return "(8va)---{"
+        if self.octaveTranspositions == 0:
+            return "(8va)"
+        else:
+            return "(8va[{}x])---{".format(self.octaveTranspositions)
 
 class OctavationEnd(object):
     def __str__(self):
@@ -619,6 +664,12 @@ def tokenize(expr):
         ) or ( # double barline
             current == punctuation['barline'] and
             previous == punctuation['barline']
+        ) or ( # long barlines
+            (
+                current == '\\' and (previous in simple_punctuation or previous == ',\\')
+            ) or (
+                current == ',' and previous == ',\\'
+            )
         ) or ( # C-clef
             (current == key_symbols[0] and previous == key_symbols[1]) or
             (current == key_symbols[1] and previous == key_symbols[0])
@@ -635,7 +686,7 @@ def tokenize(expr):
             (
                 (
                     len(previous) <= 2 and
-                    previous[0] == punctuation['timesig'] and
+                    previous[0] == time_signature and
                     current in digits
                 ) or ( # case 12 is numumerator or 16 is denominator
                     len(previous) == 3 and
@@ -677,7 +728,10 @@ def tokenize(expr):
         ) or ( # pedal mark 'up'
             current == 'p' and previous == 'p'
         ) or ( # rest prolongation
-            current == operators['prolonger'] and re.search('(\]~{0,2}$)|(\}~{0,1}$)', previous)
+                (current == operators['prolonger'] and re.search('(\]~{0,2}$)|(\}~{0,1}$)', previous)
+            ) or (
+                current == rests[0] and previous == rests[0]
+            )
         ) or ( # error sign
             current == punctuation['bold_double_barline'] and previous == punctuation['bold_double_barline']
         ):
@@ -714,7 +768,7 @@ def parse(expr):
                 current_key_signature = KeySignature(clefs[split_token.group(1)], new_key_signature)
                 continue
 
-        elif token[0] == punctuation['timesig']:
+        elif token[0] == time_signature:
             if len(token) == 3:
                 tree.append( TimeSignature(token[1], token[2]) )
             elif (len(token) == 4 or len(token) == 5):
@@ -750,6 +804,34 @@ def parse(expr):
         elif token == punctuation['repeat_to']:
             tree.append( RepeatTo() )
             continue
+        
+        elif token == punctuation['long']['systemic_barline']:
+            tree.append( SystemicBarline() )
+            continue
+        
+        elif token == punctuation['long']['grand_staff']:
+            tree.append( GrandStaff() )
+            continue
+            
+        elif token == punctuation['long']['systemic_barline']:
+            tree.append( SystemicBarline() )
+            continue
+            
+        elif token in punctuation['long']['double_systemic_barline']:
+            tree.append( DoubleSystemicBarline() )
+            continue
+            
+        elif token == punctuation['long']['bold_systemic_barline']:
+            tree.append( BoldSystemicBarline() )
+            continue
+            
+        elif token == punctuation['long']['long_repeat_from']:
+            tree.append( LongRepeatFrom() )
+            continue
+            
+        elif token == punctuation['long']['long_repeat_to']:
+            tree.append( LongRepeatTo() )
+            continue
 
         elif token in repetition:
             if type(repetition[token]) is int:
@@ -760,7 +842,7 @@ def parse(expr):
 
         elif token in octavation:
             if type(octavation[token]) is int:
-                tree.append ( OctavationStart() )
+                tree.append ( OctavationStart(octavation[token]) )
             else:
                 tree.append( OctavationEnd() )
             continue
@@ -782,7 +864,7 @@ def parse(expr):
             continue
 
         elif token[0] in repeat_reference:
-            if len(token) > 0:
+            if len(token) > 1:
                 tree.append( FromTo(references[token[0]], references[token[1]]) )
             else:
                 tree.append( FromTo(references[token]) )
@@ -805,6 +887,10 @@ def parse(expr):
             continue
         
         elif token[0] in rests:
+            if token == ']]': # implicit prolongation
+                tree.append ( Rest(1) )
+                continue
+                
             for symbol in token:
                 if symbol == ']':
                     tree.append ( Rest(0) )
@@ -841,221 +927,3 @@ def parse(expr):
             tree.append( Chord(chord_notes) )
 
     return tree
-
-from music21 import stream, note, chord, articulations, expressions, key, meter, bar, dynamics, repeat
-
-def create_m21Note(nobj):
-    n = note.Note(nobj.get_m21name(), quarterLength=nobj.get_quarterLength())
-    n.accidental = nobj.get_m21accidental()
-    n.articulations = [a() for a in nobj.get_m21articulations()]
-    n.expressions = [e() for e in nobj.get_m21expressions()]
-    return n
-    
-def extractMergedDiacritics(n1, n2):
-    artic = n1.articulations
-    for a in n2.articulations:
-        if a not in n1.articulations:
-            n1.articulations.append(a)
-    n1.articulations = []
-    n2.articulations = []
-    
-    expre = n1.expressions
-    for a in n2.expressions:
-        if a not in n1.expressions:
-            n1.expressions.append(a)
-    n1.expressions = []
-    n2.expressions = []
-    
-    return [artic, expre]
-
-def translateToMusic21(tree):
-    part = stream.Part()
-    part.append(stream.Measure()) # measure['current'] is always already contained in part
-    measure = {'current' : part[-1], 'counter' : 0} # beacause measure numbers are not set automatically
-                                                    # (dict as work-around for *nonlocal* statement of Python 3.*)
-    repeatEnds = []
-    
-    def insertNewMeasure():
-        part.append( stream.Measure() )
-        measure['current'] = part[-1]
-        measure['counter'] += 1
-        measure['current'].number = measure['counter']
-    
-    for structure in tree:
-        # (time structures)
-        if isinstance(structure, Chord):
-            if len(structure) > 1:
-                noteList = []
-                for nobj in structure:
-                    n = create_m21Note(nobj)
-                    noteList.append(n)
-                c = chord.Chord(noteList)
-                # transfer first-note and last-note diacritics to chord diacritics
-                chordArticulations, chordExpressions = extractMergedDiacritics(c[0], c[-1])
-                c.articulations = chordArticulations
-                c.expressions = chordExpressions
-                
-                measure['current'].append( c )
-            else:
-                measure['current'].append( create_m21Note(structure[0]) )
-                
-        if isinstance(structure, Rest):
-            measure['current'].append( note.Rest(quarterLength=structure.get_quarterLength()) )
-        # (end time structures)
-        
-        # (signatures)
-        if isinstance(structure, KeySignature):
-            measure['current'].clef = structure.get_m21clef()() # instantiation
-            measure['current'].insert(0.0, key.KeySignature(structure.getm21signature()) )
-        
-        if isinstance(structure, TimeSignature):
-            measure['current'].insert(0.0, meter.TimeSignature(structure.get_m21fractionalTime()) )
-        # (end signatures)
-        
-        # (barlines)
-        if isinstance(structure, MeasureEnd):
-            if len(measure['current']) > 0:
-                insertNewMeasure()
-        
-        if isinstance(structure, SectionEnd):
-            measure['current'].append( bar.BarLine(style='double') )
-            insertNewMeasure()
-        
-        if isinstance(structure, End):
-            measure['current'].append( bar.BarLine(style='final') )
-            insertNewMeasure()
-        # (end barlines)
-        
-        # (dynamics)
-        if isinstance(structure, Dynamic):
-            if isinstance(measure['current'][-1], chord.Chord):
-                lastChordOffset = measure['current'][-1].offset
-                measure['current'].insert(lastChordOffset, dynamics.Dynamic(structure.get_m21dynamic))
-            else:
-                measure['current'].append( dynamics.Dynamic(structure.get_m21dynamic) )
-        
-        if isinstance(structure, GradualDynamic):
-            if isinstance(measure['current'][-1], chord.Chord):
-                lastChordOffset = measure['current'][-1].offset
-                if structure.get_name() == 'crescendo':
-                    measure['current'].insert(lastChordOffset, dynamics.Crescendo() )
-                else:
-                    measure['current'].insert(lastChordOffset, dynamics.Diminuendo() )
-            else:
-                if structure.get_name() == 'crescendo':
-                    measure['current'].append( dynamics.Crescendo() )
-                else:
-                    measure['current'].append( dynamics.Diminuendo() )
-        # (end dynamics)
-        
-        # (repeat structures)
-        if isinstance(structure, RepeatFrom):
-            if not isinstance(measure['current'][-1], bar.Repeat):
-                insertNewMeasure()
-            measure['current'].leftBarline = bar.Repeat(direction='start')
-            
-        if isinstance(structure, RepeatTo):
-            if len(repeatEnds) != 0: # close last repeat section
-                startMeasureNo = repeatEnds.pop()
-                endMeasureNo = measure['current'].number
-                repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
-            
-            measure['current'].rightBarline = bar.Repeat(direction='end') # TODO: keep track of repetition number
-            insertNewMeasure()
-        
-        if isinstance(structure, RepeatSectionStart):
-            if len(repeatEnds) != 0: # close last repeat section
-                startMeasureNo = repeatEnds.pop()
-                endMeasureNo = measure['current'].number
-                repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
-            
-            if len(measure['current']) == 0:
-                repeatEnds.append(measure['current'].number)
-            else:
-                repeatEnds.append(measure['current'].number + 1)
-            
-        if isinstance(structure, RepeatSectionEnd):
-            startMeasureNo = repeatEnds.pop()
-            if len(measure['current']) == 0:
-                endMeasureNo = part[-2].number
-            else:
-                endMeasureNo = measure['current'].number
-            endingNo = structure.get_m21no()
-            repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
-            
-        if isinstance(structure, Coda):
-            measure['current'].append( repeat.Coda() )
-        
-        if isinstance(structure, Segno):
-            measure['current'].append( repeat.Segno() )
-        
-        if isinstance(structure, FromTo):
-            repfrom, repto = structure.get_m21parameters()
-            
-            if repfrom == 'D.C.':
-                if repto == None:
-                    measure['current'].append( repeat.DaCapo() )
-                if repto == 'al Coda':
-                    measure['current'].append( repeat.DaCapoAlCoda() )
-                if repto == 'al Fine':
-                    measure['current'].append( repeat.DaCapoAlFine() )
-            if repfrom == 'D.S.':
-                if repto == None:
-                    measure['current'].append( repeat.DalSegno() )
-                if repto == 'al Coda':
-                    measure['current'].append( repeat.DalSegnoAlCoda() )
-                if repto == 'al Fine':
-                    measure['current'].append( repeat.DalSegnoAlFine() )
-        # (end repeat structures)
-            
-    # Clean-up
-    if type(part[-1]) is stream.Measure and len(part[-1]) == 0:
-        silent = part.pop(-1)
-        
-    return part
-    
-
-def writeStream(m21stream, format='midi', wrtpath=None):
-    """
-    Write out Music21 stream in a given format. If wrtpath is not specified
-    the file is written in the current working directory (as 'untitled.ext')
-    
-    The possible output formats are
-        musicxml lily(pond) midi
-    """
-    import os
-    from music21.common import findFormat
-    
-    fmt, ext = findFormat(format)
-    
-    if not wrtpath:
-        wrtpath = os.path.join(os.getcwd(), 'untitled' + ext)
-    if os.path.isdir(wrtpath):
-        wrtpath = os.path.join(wrtpath, 'untitled' + ext)
-        
-    m21stream.write(format, wrtpath)
-    
-
-if __name__ == '__main__':
-    import sys
-    
-    if len(sys.argv) >= 2:
-        t = parse(sys.argv[1])
-        s = translateToMusic21(t)
-        if len(sys.argv) == 2:
-            writeStream(s)
-        if len(sys.argv) == 3:
-            writeStream(s, format=sys.argv[2])
-    else:
-        print """Usage:
-    $ python parser.py [string] [format]\n
-Output path is current working directory.
-Test-strings:
-    '_----~34 a d g, sfh g j,'  Signatures & chords
-    ', a a- a--, g g= g==,'     Accidentals
-    ', a D g; d F d:'           Repetition markings"""
-        
-        
-        
-              
-            

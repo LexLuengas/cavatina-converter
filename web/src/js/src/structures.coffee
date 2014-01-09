@@ -146,6 +146,16 @@ class End
     get_str: ->
         return "(end)"
 
+class SystemicBarline extends MeasureEnd
+
+class DoubleSystemicBarline extends SectionEnd
+
+class BoldSystemicBarline extends End
+
+class GrandStaff
+    get_str: ->
+        return "(grand staff)"
+
 class RepeatFrom
     get_str: ->
         return "||:"
@@ -153,6 +163,10 @@ class RepeatFrom
 class RepeatTo
     get_str: ->
         return ":||"
+
+class LongRepeatFrom extends RepeatFrom
+
+class LongRepeatTo extends RepeatTo
 
 class RepeatSectionStart
     constructor: (@n) ->

@@ -34,7 +34,7 @@ repetition = {
 
 octavation = {
     'O' : 1,
-    'OO' : 1,
+    'OO' : 0,
     'O`' : 'end'
 }
 
