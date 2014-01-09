@@ -288,31 +288,4 @@ if __name__ == '__main__':
         if len(sys.argv) == 3:
             writeStream(s, format=sys.argv[2])
     else:
-        print """Usage:
-    $ python parser.py [string] [format]\n
-Output path is current working directory.
-
-Test-strings:
-    '+-------~34F F F,_-- F F F,+_= F F F,'                             Key signatures
-    '_~44D D D D,~68d d d d d d,~128D,~1216,~816.'                      Time signatures
-    ', adg sfh dgj fhq etu, zcb 680 zh0, sd dfg asdfghj,'               Chords
-    ', ADG SFH DGJ FHQ ETU,'                                                quarter
-    ', f G H~ J~~, ] } ]] }~ }~~.'                                      Rests
-    ', a a~ a~~, A A~ A~~, D D< D~< D~~<.'                              Note length modifiers
-    ', a a- a--, g g= g==, f- f= f-=.'                                  Accidentals
-    ', A\' A\'\' A\" A\"\", E\' E\'\' E\" E\"\",'                       Articulations
-    ', A A A A; A A A A, A A A A: A A A A.'                             Repetition markings
-    ', A A A A; A A A A,o A A A A o`,oo A A A A o`:'                        endings (1)
-    ', A A A A; A A A Ao, A A A A o`oo, A A A A o`:'                        endings (2)
-    ', A A A A; A A A Ao, A A A A oo, A A A A :'                            endings (3)
-    ', A A A Ai, A A A AI, A A A A.'                                    Coda & segno
-    ', D Dk, D DK, D Dki , D DkI , D DKi , D DKI ;I  ,i  :'                 references
-    ', g\, g\\, g\\\, g|, g||, g|||, g\|, g|\, g\\\|, g||\, g\\|'       Dynamics
-    ', d[ d[[ d[[[ d[[[[ g, d[[[[[ d d, d[[[[[[ d d d, d[`, d{ d{`.'    Expressions
-    ', d f.., df f.., d dg.., j q.., f`h` f`.. f g.. d f..,'            Beams
-    ',+ D F G D,\n,\\_ D F G D,\'                                       Grand staff
-    ',+~44F G H J, D F G H,\n,\\_~44F D Q J,\ H J H H,\'                    part grouping (1)
-    ',+ D~~,\n,\_ F~~,\\n,\_+ S~~,\'                                        part grouping (2)
-    ',+ D~~,\n,\_ F~~,\\n,+ G~,\n,\_ R~,\'                                  part grouping (3)""" # TODO: separate test suite
-    
-            
+        print "Usage:\n\t$ python parser.py [string] [format]\nOutput path is current working directory."
