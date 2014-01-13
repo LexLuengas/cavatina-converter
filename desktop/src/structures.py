@@ -107,8 +107,8 @@ class Note(TimeInterval):
         
         # ornamentation
         elif (mark == operators['inverter'] and MatchIndex('^[\[|\{]$', self.note_diacritics) != None): # inversion
-            lastOrnmIndex = [i for i in self.note_diacritics if i in ornaments_symbols][-1] # last index of simple ornament
-            self.note_diacritics[lastOrnmIndex] = self.note_diacritics[lastOrnmIndex] + '`'
+            lastOrnament = [i for i in self.note_diacritics if i in ornaments_symbols][-1] # last index of simple ornament
+            lastOrnament = lastOrnament + '`'
         elif (mark == '[' and MatchIndex('\[+', self.note_diacritics) != None): # trills
             mark_index = MatchIndex('\[+', self.note_diacritics)
             self.note_diacritics[mark_index] = self.note_diacritics[mark_index] + '['

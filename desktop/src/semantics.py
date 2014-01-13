@@ -20,8 +20,8 @@ splitter_length = { # in quarters
 }
 
 clefs = {
-    '_' : 'G', #'sol'
-    '+' : 'F', #'fa'
+    '+' : 'G', #'sol'
+    '_' : 'F', #'fa'
     '_+' : 'C', #'do'
     '+_' : 'C' #'do'
 }

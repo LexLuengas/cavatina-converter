@@ -109,7 +109,7 @@ def tokenize(expr):
 def parse(expr):
     stack = tokenize(expr)
     tree = []
-    current_key_signature = KeySignature(clefs['_']) #   this variable is the last defined key signature and affects all
+    current_key_signature = KeySignature(clefs['+']) #   this variable is the last defined key signature and affects all
     #                                                       succeeding note objects. If no key signature is yet defined when
     #                                                       a note is entered, the G-clef without accidentals is assumed.
 

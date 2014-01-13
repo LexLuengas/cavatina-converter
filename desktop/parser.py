@@ -20,8 +20,8 @@ splitter_length = { # in quarters
 }
 
 clefs = {
-    '_' : 'G', #'sol'
-    '+' : 'F', #'fa'
+    '+' : 'G', #'sol'
+    '_' : 'F', #'fa'
     '_+' : 'C', #'do'
     '+_' : 'C' #'do'
 }
@@ -349,8 +349,8 @@ class Note(TimeInterval):
         
         # ornamentation
         elif (mark == operators['inverter'] and MatchIndex('^[\[|\{]$', self.note_diacritics) != None): # inversion
-            lastOrnmIndex = [i for i in self.note_diacritics if i in ornaments_symbols][-1] # last index of simple ornament
-            self.note_diacritics[lastOrnmIndex] = self.note_diacritics[lastOrnmIndex] + '`'
+            lastOrnament = [i for i in self.note_diacritics if i in ornaments_symbols][-1] # last index of simple ornament
+            lastOrnament = lastOrnament + '`'
         elif (mark == '[' and MatchIndex('\[+', self.note_diacritics) != None): # trills
             mark_index = MatchIndex('\[+', self.note_diacritics)
             self.note_diacritics[mark_index] = self.note_diacritics[mark_index] + '['
@@ -745,7 +745,7 @@ def tokenize(expr):
 def parse(expr):
     stack = tokenize(expr)
     tree = []
-    current_key_signature = KeySignature(clefs['_']) #   this variable is the last defined key signature and affects all
+    current_key_signature = KeySignature(clefs['+']) #   this variable is the last defined key signature and affects all
     #                                                       succeeding note objects. If no key signature is yet defined when
     #                                                       a note is entered, the G-clef without accidentals is assumed.
 

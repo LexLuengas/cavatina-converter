@@ -1,6 +1,6 @@
 
 from parser import *
-from music21 import stream, note, chord, articulations, expressions, key, meter, bar, dynamics, repeat, spanner, layout
+from music21 import stream, note, chord, articulations, expressions, key, meter, bar, dynamics, repeat, spanner, layout, metadata
 
 def create_m21Note(nobj):
     n = note.Note(nobj.get_m21name(), quarterLength=nobj.get_quarterLength())
@@ -28,6 +28,11 @@ def extractMergedDiacritics(n1, n2):
 
 def translateToMusic21(tree):
     score = stream.Score()
+    
+    score.insert(metadata.Metadata())
+    score.metadata.title = 'Untitled'
+    score.metadata.composer = 'Unknown Composer'
+    
     score.append(stream.Part())
     part = score[-1]
     part.append(stream.Measure()) # measure['current'] is always already contained in part
@@ -71,25 +76,30 @@ def translateToMusic21(tree):
         # (signatures)
         if isinstance(structure, KeySignature):
             if catchPartitioning:
-                part = score[0]
-                part.append(stream.Measure())
-                measure['current'] = part[-1]
+                # Return to first part
+                part = score[1] # score[0] is the metadata object
+                measure['counter'] = part[-1].number
+                insertNewMeasure()
+                catchPartitioning = False
             
             measure['current'].clef = structure.get_m21clef()() # instantiation
             measure['current'].insert(0.0, key.KeySignature(structure.getm21signature()) )
         
         if isinstance(structure, TimeSignature):
-            measure['current'].insert(0.0, meter.TimeSignature(structure.get_m21fractionalTime()) )
+            newTimeSignature = meter.TimeSignature(structure.get_m21fractionalTime())
+            measure['current'].insert(0.0, newTimeSignature)
         # (end signatures)
         
         # (barlines)
         if isinstance(structure, MeasureEnd):
-            if catchPartitioning:
-                part = score[0]
-                part.append(stream.Measure())
-                measure['current'] = part[-1]
+            if catchPartitioning and not isinstance(structure, SystemicBarline):
+                # Return to first part
+                part = score[1] # score[0] is the metadata object
+                measure['counter'] = part[-1].number
+                insertNewMeasure()
+                catchPartitioning = False
                 
-            if len(measure['current']) > 0:
+            elif len(measure['current']) > 0:
                 insertNewMeasure()
         
         if isinstance(structure, SectionEnd):
@@ -218,34 +228,43 @@ def translateToMusic21(tree):
         #(grand staff)
         if isinstance(structure, GrandStaff) or isinstance(structure, SystemicBarline):
             if catchPartitioning:
-                if part == score[-1]: # part is last part
-                    # Re-initialize
+                if part == score.parts[-1]: # part is last part
+                    # Create new part and re-initialize
                     part = stream.Part()
-                    score.insert(0.0, part)
-                    part.append(stream.Measure())
-                    measure = {'current': part[-1], 'counter': 0}
+                    score.append(part)
+                    part.offset = 0.0
+                    measure['counter'] = -1
+                    insertNewMeasure()
                     
                     if isinstance(structure, GrandStaff):
-                        p1 = score[-2]
-                        p2 = score[-1] # = part
+                        p1 = score.parts[-2]
+                        p2 = score.parts[-1] # = part
                         staffGroup = layout.StaffGroup([p1, p2], symbol='brace')
                         score.insert(0.0, staffGroup)
                         
                     if isinstance(structure, SystemicBarline):
-                        partList = [p for p in score.parts]
-                        staffGroup = layout.StaffGroup(partList, symbol='bracket')
-                        score.insert(0.0, staffGroup)
+                        SystBarline = score.getElementsByClass(layout.StaffGroup)[0] if len(score.getElementsByClass(layout.StaffGroup)) > 0 else None
+                        if not SystBarline:
+                            p1 = score.parts[-2]
+                            p2 = score.parts[-1] # = part
+                            staffGroup = layout.StaffGroup([p1, p2], symbol='line')
+                            score.insert(0.0, staffGroup)
+                        else:
+                            SystBarline.addSpannedElements(part)
                         
                 else: # next parts already exist
                     part = part.next()
-                    part.append(stream.Measure())
-                    measure['current'] = part[-1]
+                    measure['counter'] = part[-1].number
+                    insertNewMeasure()
                     
                 catchPartitioning = False
         #(end grand staff)
         
         # New line
         if isinstance(structure, Newline):
+            # Clean-up
+            if type(part[-1]) is stream.Measure and len(part[-1]) == 0:
+                part.remove(part[-1]) # measure['current']
             catchPartitioning = True # trigger watch-state
             
     # Clean-up
