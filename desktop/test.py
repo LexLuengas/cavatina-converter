@@ -16,8 +16,11 @@ testStrings = {
         'quarters': ', ADG SFH DGJ FHQ ETU,',
         'mixed' : ', DG~ DG~~ FG~~,'
         },
-    'rests' : ', f G H~ J~~, ] } ]] }~ }~~.',
-    'note-length modifiers' : ', a a~ a~~, A A~ A~~, D D< D~< D~~<.',
+    'rests' : {
+        'simple' : ', f G H~ J~~, ] } ]] }~ }~~.',
+        'dotted' : ', ] } ]< }< ]]< }~< }~~<.',
+        },
+    'note-length modifiers' : ', a a~ a~~, A A~ A~~, D D< D~< D~~<, d d< d~< d~~<.',
     'accidentals' : ', a a- a--, g g= g==, f- f= f-=.',
     'articulations' : ', A\' A\'\' A\" A\"\", E\' E\'\' E\" E\"\",',
     'repetition markings' : {
@@ -35,7 +38,7 @@ testStrings = {
     'dynamics' : r', g\, g\\, g\\\, g|, g||, g|||, g\|, g|\, g\\\|, g||\, g\\|',
     'expressions' : ', d[ d[[ d[[[ d[[[[ g, d[[[[[ d d, d[[[[[[ d d d, d[`, d{ d{`.',
     'ottava' : ', DO F G HO`, F GOO G G,',
-    'beams' : ', d f.., df f.., d dg.., j q.., f`h` f`.. f g.. d f..,',
+    'beams' : ', d f.., df f.., d dg.., j q.., f`h` f`.. f g.. d f.., d< f<--..,',
     'grand staff' : {
         'simple' : [
                 r',+ D F G D,' + '\n' + r',\\_ D F G D,' + '\\',
@@ -100,7 +103,7 @@ class GlobalTester(unittest.TestCase):
         s = testStrings['note-length modifiers']
         t = parse(s)
         score = translateToMusic21(t)
-        _show(score)
+        _show(score, 'musicxml')
     
     def testChords(self):
         sEighths = testStrings['chords']['eighths']
@@ -120,10 +123,16 @@ class GlobalTester(unittest.TestCase):
         _show(score3)
     
     def testRests(self):
-        s = testStrings['rests']
-        t = parse(s)
-        score = translateToMusic21(t)
-        _show(score)
+        s1 = testStrings['rests']['simple']
+        s2 = testStrings['rests']['dotted']
+        
+        t1 = parse(s1)
+        score1 = translateToMusic21(t1)
+        _show(score1, 'musicxml')
+        
+        t2 = parse(s2)
+        score2 = translateToMusic21(t2)
+        _show(score2, 'musicxml')
     
     def testAccidentals(self):
         s = testStrings['accidentals']
@@ -185,11 +194,10 @@ class GlobalTester(unittest.TestCase):
         # _show(score)
     
     def testBeams(self):
-        pass
-        # s = testStrings['beams']
-        # t = parse(s)
-        # score = translateToMusic21(t)
-        # _show(score)
+        s = testStrings['beams']
+        t = parse(s)
+        score = translateToMusic21(t)
+        _show(score, 'musicxml')
     
     def testGrandStaff(self):
         sList = testStrings['grand staff']['simple']

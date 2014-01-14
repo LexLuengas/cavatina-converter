@@ -42,6 +42,9 @@ def translateToMusic21(tree):
     octavationSwitch = False
     catchPartitioning = False # watch-state triggered by a Newline
     
+    # preserveStemDirection = False # TODO: read stem direction
+    makeVoices = []
+    
     def insertNewMeasure():
         part.append( stream.Measure() )
         measure['current'] = part[-1]
@@ -53,18 +56,51 @@ def translateToMusic21(tree):
         if isinstance(structure, Chord):
             if len(structure) > 1:
                 noteList = []
+                
                 for nobj in structure:
                     n = create_m21Note(nobj)
                     noteList.append(n)
-                c = chord.Chord(noteList)
-                # transfer first-note and last-note diacritics to chord diacritics
-                chordArticulations, chordExpressions = extractMergedDiacritics(c[0], c[-1])
-                c.articulations = chordArticulations # some articulations are not yet translated from music21 into Lilypond (staccato, tenuto, etc.)
-                c.expressions = chordExpressions # idem. (mordent, turn, trill, etc.)
                 
-                measure['current'].append( c )
+                # Trim chord into chord voices
+                chordVoices = [ [noteList[0]] ]
+                currentLength = noteList[0].quarterLength
+                currentVoice = chordVoices[0]
+                
+                for n in noteList[1:]:
+                    if n.quarterLength != currentLength:
+                        chordVoices.append([n])
+                        currentLength = n.quarterLength
+                        currentVoice = chordVoices[-1]
+                    else:
+                        currentVoice.append(n)
+                
+                # Make chords
+                for nlist in chordVoices:
+                    c = chord.Chord(nlist)
+                    chordArticulations, chordExpressions = extractMergedDiacritics(c[0], c[-1]) # transfer first-note and last-note diacritics to chord diacritics
+                    c.articulations = chordArticulations # some articulations are not yet translated from music21 into Lilypond (staccato, tenuto, etc.)
+                    c.expressions = chordExpressions # idem. (mordent, turn, trill, etc.)
+                    if nlist == chordVoices[0]:
+                        measure['current'].append( c )
+                        chordOffset = measure['current'][-1].offset
+                    else:
+                        measure['current'].insert(chordOffset, c ) # overlap
+                
+                if len(chordVoices) > 1: # if overlap
+                    makeVoices.append( (part.id, measure['current'].number) ) # remember overlap locations
+                        
             else:
                 measure['current'].append( create_m21Note(structure[0]) )
+            
+            # Beams
+            if structure.beamToPrevious:
+                try:
+                    measure['current'][-2].beams.fill('eighth', type='start')
+                    measure['current'][-1].beams.fill('eighth', type='stop')
+                except stream.StreamException:
+                    pass # TODO: handle StreamException
+                
+            # Ottava
             if octavationSwitch:
                 measure['current'][-1].transpose('p8', inPlace=True)
                 ottava.addSpannedElements(measure['current'][-1])
@@ -270,9 +306,26 @@ def translateToMusic21(tree):
     # Clean-up
     if type(part[-1]) is stream.Measure and len(part[-1]) == 0:
         part.remove(part[-1]) # measure['current']
-        
-    return score
     
+    # Separate overlaps
+    for partid, mno in makeVoices:
+        p = score.getElementById(partid)
+        p[mno].makeVoices() # ugly results when durations don't fit
+    
+    # Automatic beams
+    # if autoBeams:
+    #     for p in score.parts: # echo TimeSignature declarations
+    #         ts = p[0].getElementsByClass(meter.TimeSignature)[0] if len(p[0].getElementsByClass(meter.TimeSignature)) > 0 else meter.TimeSignature('4/4')
+    #         for m in p:
+    #             if len(m.getElementsByClass(meter.TimeSignature)) > 0:
+    #                 ts = m.getElementsByClass(meter.TimeSignature)[0]
+    #             else:
+    #                 m.timeSignature = ts
+    #            
+    #     for p in score.parts: # make auto-beams
+    #         p.makeBeams(inPlace=True)
+    
+    return score
 
 def writeStream(m21stream, format='midi', wrtpath=None):
     """

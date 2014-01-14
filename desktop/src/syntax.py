@@ -75,7 +75,8 @@ def tokenize(expr):
                 (current == operators['prolonger'] and not re.search('~[-=\'\"<>]*~', previous)) or # no more than 2 '~' for each note
                 (current == operators['inverter'] and re.search('[^\[](\[|\{)$', previous)) or # inverted ornaments
                 (current == '[' and (re.search('[^\[]\[{1,5}$', previous) or not re.search('\[', previous)) and not re.search('\{', previous)) or # mordent, trills, no double ornamentation
-                (current == '{' and not re.search('\[|\{', previous)) # grupetto, no double ornamentation
+                (current == '{' and not re.search('\[|\{', previous)) or # grupetto, no double ornamentation
+                (current == '.' and not re.search('\.\.', previous)) # beams
             ) and (
                 previous[0] in note_range
             )
@@ -92,10 +93,11 @@ def tokenize(expr):
         ) or ( # pedal mark 'up'
             current == 'p' and previous == 'p'
         ) or ( # rest prolongation
-                (current == operators['prolonger'] and re.search('(\]~{0,2}$)|(\}~{0,1}$)', previous)
-            ) or (
-                current == rests[0] and previous == rests[0]
-            )
+            (current == operators['prolonger'] and re.search('(\]~{0,2}$)|(\}~{0,1}$)', previous)) or
+            (current == note_dot and re.search('(\]~{0,3}$)|(\}~{0,2}$)', previous)) or
+            (current == rests[0] and previous == rests[0])
+        ) or ( # beam errors
+            current == '.' and previous == '.'
         ) or ( # error sign
             current == punctuation['bold_double_barline'] and previous == punctuation['bold_double_barline']
         ):
@@ -246,27 +248,30 @@ def parse(expr):
             tree[-1].add_arpeggio()
             continue
 
-        elif token == '..' and not isinstance(tree[-1], Chord): # internally used to create beams between eighth notes
+        elif token == '..': # internally used to create beams between eighth notes
             tree.append( ErrorSign() )
             continue
         
         elif token[0] in rests:
-            if token == ']]': # implicit prolongation
+            if token[:2] == ']]': # implicit prolongation
                 tree.append ( Rest(1) )
-                continue
+                token = token[2:]
                 
             for symbol in token:
                 if symbol == ']':
                     tree.append ( Rest(0) )
                 elif symbol == '}':
                     tree.append ( Rest(1) )
-                else:
+                elif symbol == note_dot:
+                    tree[-1].add_dot_length()
+                elif symbol == operators['prolonger']:
                     tree[-1].increase_length_exponent()
             continue
 
         chord_notes = []
 
         for symbol in token:
+            beamed = False
             try:
                 note_pitch = get_pitch(symbol)
                 if note_pitch >= eighth_note_range: # quarter notes
@@ -279,6 +284,8 @@ def parse(expr):
                     chord_notes[-1].increase_length_exponent()
                 if symbol == note_dot and len(chord_notes) > 0:
                     chord_notes[-1].add_dot_length()
+                if symbol == '.':
+                    beamed = True
                 if ((symbol in accidentals_symbols or
                     symbol in articulations_symbols or
                     symbol in ornaments_symbols or
@@ -288,6 +295,6 @@ def parse(expr):
                     chord_notes[-1].add_diacritical_mark(symbol)
         
         if len(chord_notes) > 0:
-            tree.append( Chord(chord_notes) )
+            tree.append( Chord(chord_notes, beamed) )
 
     return tree

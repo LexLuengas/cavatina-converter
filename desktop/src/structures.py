@@ -27,13 +27,13 @@ class TimeInterval(object):
 
     def add_dot_length(self):
         if 2 ** self.length_exponent > 1:
-            self.length = 3 * (2 ** (self.length_exponent-1))
+            self.length = 3 * (2 ** (self.length_exponent - 1))
         else:
             self.denominator = 2 * self.denominator
             self.length = 3 * (2 ** self.length_exponent)
     
     def get_quarterLength(self):
-        return self.length * 0.5
+        return (float(self.length) / self.denominator) * 4
 
 class Note(TimeInterval):
     def __init__(self, pitch, key_signature, length_exponent=0):
@@ -185,9 +185,10 @@ class Note(TimeInterval):
         return expr
 
 class Chord(object):
-    def __init__(self, notes): # a list of Note objects
+    def __init__(self, notes, beamed=False): # a list of Note objects
         self.notes = notes
         self.arpeggio = False
+        self.beamToPrevious = beamed
 
     def add_arpeggio(self):
         self.arpeggio = True
