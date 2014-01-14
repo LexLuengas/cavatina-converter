@@ -26,7 +26,7 @@ def extractMergedDiacritics(n1, n2):
     
     return [artic, expre]
 
-def translateToMusic21(tree):
+def translateToMusic21(tree, preserveStemDirection=False):
     score = stream.Score()
     
     score.insert(metadata.Metadata())
@@ -42,8 +42,7 @@ def translateToMusic21(tree):
     octavationSwitch = False
     catchPartitioning = False # watch-state triggered by a Newline
     
-    # preserveStemDirection = False # TODO: read stem direction
-    makeVoices = []
+    makeVoices = [] # for multi-voice chords
     
     def insertNewMeasure():
         part.append( stream.Measure() )
@@ -59,6 +58,8 @@ def translateToMusic21(tree):
                 
                 for nobj in structure:
                     n = create_m21Note(nobj)
+                    if preserveStemDirection:
+                        n.stemDirection = nobj.stemDirection
                     noteList.append(n)
                 
                 # Trim chord into chord voices
@@ -88,7 +89,7 @@ def translateToMusic21(tree):
                 
                 if len(chordVoices) > 1: # if overlap
                     makeVoices.append( (part.id, measure['current'].number) ) # remember overlap locations
-                        
+                    
             else:
                 measure['current'].append( create_m21Note(structure[0]) )
             

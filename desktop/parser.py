@@ -280,6 +280,7 @@ class TimeInterval(object):
 class Note(TimeInterval):
     def __init__(self, pitch, key_signature, length_exponent=0):
         self.pitch = pitch
+        self.stemDirection = 'up' if note_range[self.pitch] in 'zxcvbnmasdfghZXCVBNMASDFGH' else 'down'
         self.key_signature = key_signature
         self.set_pitch(self.pitch)
         super(Note, self).__init__(length_exponent)
@@ -356,6 +357,9 @@ class Note(TimeInterval):
             self.note_diacritics[mark_index] = self.note_diacritics[mark_index] + '['
         elif mark in ornaments_symbols: # base case
             self.note_diacritics.append(mark)
+    
+    def invertStem(self):
+        self.stemDirection = 'up' if self.stemDirection == 'down' else 'down'
 
     def __str__(self):
         note_accidentals = [accidentals_short[d] for d in self.note_diacritics if d in accidentals_short]
@@ -709,11 +713,12 @@ def tokenize(expr):
             current in chord_set and previous[0] in chord_set
         ) or ( # altered notes
             (   (current in all_diacritics) or
-                (current == operators['prolonger'] and not re.search('~[-=\'\"<>]*~', previous)) or # no more than 2 '~' for each note
+                (current == operators['prolonger'] and not re.search('~[-=\'\"<>\[\{`]*~', previous)) or # no more than 2 '~' for each note
                 (current == operators['inverter'] and re.search('[^\[](\[|\{)$', previous)) or # inverted ornaments
                 (current == '[' and (re.search('[^\[]\[{1,5}$', previous) or not re.search('\[', previous)) and not re.search('\{', previous)) or # mordent, trills, no double ornamentation
                 (current == '{' and not re.search('\[|\{', previous)) or # grupetto, no double ornamentation
-                (current == '.' and not re.search('\.\.', previous)) # beams
+                (current == '.' and not re.search('\.\.', previous)) or # beams
+                (current == operators['inverter'] and not re.search('`[-=\'\"<>\[\{~]*`', previous)) # stem inversion
             ) and (
                 previous[0] in note_range
             )
@@ -907,7 +912,7 @@ def parse(expr):
 
         chord_notes = []
 
-        for symbol in token:
+        for i, symbol in enumerate(token):
             beamed = False
             try:
                 note_pitch = get_pitch(symbol)
@@ -926,10 +931,12 @@ def parse(expr):
                 if ((symbol in accidentals_symbols or
                     symbol in articulations_symbols or
                     symbol in ornaments_symbols or
-                    symbol == operators['inverter'] or # for the case of inverted ornamentation
+                    (symbol == operators['inverter'] and token[i-1] in ornaments_symbols) or # for the case of inverted ornamentation
                     symbol == accent_mark
                     ) and len(chord_notes) > 0):
                     chord_notes[-1].add_diacritical_mark(symbol)
+                elif symbol == operators['inverter']: # stem inversion
+                    chord_notes[-1].invertStem()
         
         if len(chord_notes) > 0:
             tree.append( Chord(chord_notes, beamed) )

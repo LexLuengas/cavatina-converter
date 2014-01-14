@@ -38,6 +38,7 @@ class TimeInterval(object):
 class Note(TimeInterval):
     def __init__(self, pitch, key_signature, length_exponent=0):
         self.pitch = pitch
+        self.stemDirection = 'up' if note_range[self.pitch] in 'zxcvbnmasdfghZXCVBNMASDFGH' else 'down'
         self.key_signature = key_signature
         self.set_pitch(self.pitch)
         super(Note, self).__init__(length_exponent)
@@ -114,6 +115,9 @@ class Note(TimeInterval):
             self.note_diacritics[mark_index] = self.note_diacritics[mark_index] + '['
         elif mark in ornaments_symbols: # base case
             self.note_diacritics.append(mark)
+    
+    def invertStem(self):
+        self.stemDirection = 'up' if self.stemDirection == 'down' else 'down'
 
     def __str__(self):
         note_accidentals = [accidentals_short[d] for d in self.note_diacritics if d in accidentals_short]
