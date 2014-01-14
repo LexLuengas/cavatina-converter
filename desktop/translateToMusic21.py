@@ -39,10 +39,11 @@ def translateToMusic21(tree, preserveStemDirection=False):
     measure = {'current': part[-1], 'counter': 0} # beacause measure numbers are not set automatically
                                                   # (dict as work-around for *nonlocal* statement of Python 3.*)
     repeatEnds = []
+    makeVoices = [] # for multi-voice chords
+    
+    # states
     octavationSwitch = False
     catchPartitioning = False # watch-state triggered by a Newline
-    
-    makeVoices = [] # for multi-voice chords
     
     def insertNewMeasure():
         part.append( stream.Measure() )
@@ -105,9 +106,12 @@ def translateToMusic21(tree, preserveStemDirection=False):
             if octavationSwitch:
                 measure['current'][-1].transpose('p8', inPlace=True)
                 ottava.addSpannedElements(measure['current'][-1])
+            
+            continue
                 
         if isinstance(structure, Rest):
             measure['current'].append( note.Rest(quarterLength=structure.get_quarterLength()) )
+            continue
         # (end time structures)
         
         # (signatures)
@@ -121,10 +125,12 @@ def translateToMusic21(tree, preserveStemDirection=False):
             
             measure['current'].clef = structure.get_m21clef()() # instantiation
             measure['current'].insert(0.0, key.KeySignature(structure.getm21signature()) )
+            continue
         
         if isinstance(structure, TimeSignature):
             newTimeSignature = meter.TimeSignature(structure.get_m21fractionalTime())
             measure['current'].insert(0.0, newTimeSignature)
+            continue
         # (end signatures)
         
         # (barlines)
@@ -142,10 +148,12 @@ def translateToMusic21(tree, preserveStemDirection=False):
         if isinstance(structure, SectionEnd):
             measure['current'].append( bar.Barline(style='double') )
             insertNewMeasure()
+            continue
         
         if isinstance(structure, End):
             measure['current'].append( bar.Barline(style='final') )
             insertNewMeasure()
+            continue
         # (end barlines)
         
         # (dynamics)
@@ -155,6 +163,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
                 measure['current'].insert(lastChordOffset, dynamics.Dynamic(structure.get_m21dynamic()))
             else:
                 measure['current'].append( dynamics.Dynamic(structure.get_m21dynamic()) )
+            continue
         
         if isinstance(structure, GradualDynamic):
             if isinstance(measure['current'][-1], chord.Chord):
@@ -168,6 +177,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
                     measure['current'].append( dynamics.Crescendo() )
                 else:
                     measure['current'].append( dynamics.Diminuendo() )
+            continue
         # (end dynamics)
         
         # (repeat structures)
@@ -175,6 +185,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
             if not isinstance(measure['current'][-1], bar.Repeat):
                 insertNewMeasure()
             measure['current'].leftBarline = bar.Repeat(direction='start')
+            continue
             
         if isinstance(structure, RepeatTo):
             if len(repeatEnds) != 0: # close last repeat section
@@ -184,6 +195,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
             
             measure['current'].rightBarline = bar.Repeat(direction='end')
             insertNewMeasure()
+            continue
         
         if isinstance(structure, RepeatSectionStart):
             if len(repeatEnds) != 0: # close last repeat section
@@ -199,6 +211,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
                 repeatEnds.append([measure['current'].number, endingNo])
             else:
                 repeatEnds.append([measure['current'].number + 1, endingNo])
+            continue
             
         if isinstance(structure, RepeatSectionEnd):
             startMeasureNo, endingNo = repeatEnds.pop()
@@ -207,12 +220,15 @@ def translateToMusic21(tree, preserveStemDirection=False):
             else:
                 endMeasureNo = measure['current'].number
             repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
+            continue
             
         if isinstance(structure, Coda):
             measure['current'].append( repeat.Coda() )
+            continue
         
         if isinstance(structure, Segno):
             measure['current'].append( repeat.Segno() )
+            continue
         
         if isinstance(structure, FromTo):
             repfrom, repto = structure.get_m21parameters()
@@ -231,6 +247,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
                     measure['current'].append( repeat.DalSegnoAlCoda() )
                 if repto == 'al Fine':
                     measure['current'].append( repeat.DalSegnoAlFine() )
+            continue
         # (end repeat structures)
         
         #(ottava)
@@ -246,10 +263,12 @@ def translateToMusic21(tree, preserveStemDirection=False):
             elif otp == 2: # spanning octavation (2x)
                 ottava = spanner.Ottava(type='15ma')
                 octavationSwitch = True
+            continue
             
         if isinstance(structure, OctavationEnd):
             part.insert(0.0, ottava)
             octavationSwitch = False
+            continue
         #(end ottava)
         
         #(sustain pedal)
@@ -295,6 +314,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
                     insertNewMeasure()
                     
                 catchPartitioning = False
+                continue
         #(end grand staff)
         
         # New line
@@ -303,6 +323,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
             if type(part[-1]) is stream.Measure and len(part[-1]) == 0:
                 part.remove(part[-1]) # measure['current']
             catchPartitioning = True # trigger watch-state
+            continue
             
     # Clean-up
     if type(part[-1]) is stream.Measure and len(part[-1]) == 0:
