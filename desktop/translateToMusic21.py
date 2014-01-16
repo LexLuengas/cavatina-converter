@@ -40,6 +40,9 @@ def translateToMusic21(tree, preserveStemDirection=False):
                                                   # (dict as work-around for *nonlocal* statement of Python 3.*)
     repeatEnds = []
     makeVoices = [] # for multi-voice chords
+    lastKeySign =   {0 : None, 1 : None, 2 : None, 3 : None, 4 : None} # part number : int
+    lastClef =      {0 : None, 1 : None, 2 : None, 3 : None, 4 : None}
+    lastTimeSign =  {0 : None, 1 : None, 2 : None, 3 : None, 4 : None}
     
     # states
     octavationSwitch = False
@@ -123,13 +126,23 @@ def translateToMusic21(tree, preserveStemDirection=False):
                 insertNewMeasure()
                 catchPartitioning = False
             
-            measure['current'].clef = structure.get_m21clef()() # instantiation
-            measure['current'].insert(0.0, key.KeySignature(structure.getm21signature()) )
+            i = score.index(part)
+            newClef = structure.get_m21clef()()
+            newKeySign = structure.getm21signature()
+            
+            if newKeySign != lastKeySign[i] or newClef.sign != lastClef[i]:
+                lastKeySign[i] = newKeySign
+                lastClef[i] = newClef.sign
+                measure['current'].clef = newClef # instantiation
+                measure['current'].insert(0.0, key.KeySignature(newKeySign) )
             continue
         
         if isinstance(structure, TimeSignature):
             newTimeSignature = meter.TimeSignature(structure.get_m21fractionalTime())
-            measure['current'].insert(0.0, newTimeSignature)
+            i = score.index(part)
+            if newTimeSignature.ratioString != lastTimeSign[i]:
+                lastTimeSign[i] = newTimeSignature.ratioString
+                measure['current'].insert(0.0, newTimeSignature)
             continue
         # (end signatures)
         

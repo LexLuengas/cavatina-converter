@@ -17,13 +17,13 @@ class SyntaxException(SyntaxError): # shows error position
         left = max(errorIndex - 10, 0)
         right = min(errorIndex + 11, len(expr))
         token = stack[i]
-        message = 'Invalid input {} at position {}:\t{} {} {}\n{}'.format(
+        message = 'Invalid input \'{}\' at position {}:\t{} {} {}\n{}'.format(
             token,
             errorIndex,
             "..." if errorIndex - 10 > 0 else "   ",
             expr[left:right],
             "..." if errorIndex + 11 < len(expr) else "   ",
-            " "*(45 + len(str(errorIndex)) + len(token)) + "\t    " + " "*(errorIndex - left) + "^")
+            " "*(47 + len(str(errorIndex)) + len(token)) + "\t    " + " "*(errorIndex - left) + "^")
         SyntaxError.__init__(self, message)
         
 def get_pitch(symbol):
@@ -150,6 +150,7 @@ def parse(expr):
     for tokenIndex, token in enumerate(stack):
         if token == '\n':
             tree.append(Newline())
+            continue
 
         elif token in punctuation['splitters']:
             tree.append(Splitter( get_splitter_length(token) ))
