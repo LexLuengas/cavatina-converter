@@ -26,9 +26,16 @@ clefs = {
     '+_' : 'C' #'do'
 }
 
+common_time = {
+    'c' : 'c',
+    'c~' : 'cut'
+}
+
 repetition = {
-    'o' : 1,
-    'oo' : 2,
+    'o' : '1',
+    'oo' : '2',
+    'ooo' : '3',
+    'oooo' : '1,2',
     'o`' : 'end'
 }
 

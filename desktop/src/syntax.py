@@ -1,6 +1,31 @@
 
-#--- SYNTAX ---#
+#--- SYNTAX ---#       
 
+def get_stringPosition(index, stack, expr):
+    if len(stack[index]) > 1:
+        return expr.index(stack[index])
+    
+    prevLen = 0
+    for s in stack[:index]:
+        prevLen += len(s)
+    return prevLen
+    
+class SyntaxException(SyntaxError): # shows error position
+    def __init__(self, infoList):
+        i, stack, expr = infoList
+        errorIndex = get_stringPosition(i, stack, expr)
+        left = max(errorIndex - 10, 0)
+        right = min(errorIndex + 11, len(expr))
+        token = stack[i]
+        message = 'Invalid input {} at position {}:\t{} {} {}\n{}'.format(
+            token,
+            errorIndex,
+            "..." if errorIndex - 10 > 0 else "   ",
+            expr[left:right],
+            "..." if errorIndex + 11 < len(expr) else "   ",
+            " "*(45 + len(str(errorIndex)) + len(token)) + "\t    " + " "*(errorIndex - left) + "^")
+        SyntaxError.__init__(self, message)
+        
 def get_pitch(symbol):
     for i in range(len(note_range)):
         if note_range[i] == symbol:
@@ -57,6 +82,12 @@ def tokenize(expr):
                     re.search('^(12)|(16)$', previous[1:] + current)
                 ) or (
                     previous == '~121' and current == '6'
+                ) or ( # common time and cut-time
+                    previous == time_signature and
+                    current == 'c'
+                ) or (
+                    previous[-1] == 'c' and
+                    current == operators['prolonger']
                 )
             ) and (
                 len(stack) > 0 and (
@@ -86,7 +117,7 @@ def tokenize(expr):
         ) or ( # gradual dynamics: crescendo, long form
             current == 'l' and previous == 'l'
         ) or ( # repeats
-            (current == 'o' or current == operators['inverter']) and previous == 'o'
+            (current == 'o' or current == operators['inverter']) and previous[0] == 'o'
         ) or ( # repeat references with indications
             current in ['i','I'] and previous in repeat_reference
         ) or ( # octavation
@@ -116,7 +147,7 @@ def parse(expr):
     #                                                       succeeding note objects. If no key signature is yet defined when
     #                                                       a note is entered, the G-clef without accidentals is assumed.
 
-    for token in stack:
+    for tokenIndex, token in enumerate(stack):
         if token == '\n':
             tree.append(Newline())
 
@@ -136,8 +167,11 @@ def parse(expr):
                 continue
 
         elif token[0] == time_signature:
-            if len(token) == 3:
-                tree.append( TimeSignature(token[1], token[2]) )
+            if len(token) <= 3:
+                if token[1] == 'c':
+                    tree.append( TimeSignature(common_time[token[1:]]) )
+                else:
+                    tree.append( TimeSignature(token[1], token[2]) )
             elif (len(token) == 4 or len(token) == 5):
                 if re.search('^12', token[1:]):
                     token_numerator = 12
@@ -201,10 +235,10 @@ def parse(expr):
             continue
 
         elif token in repetition:
-            if type(repetition[token]) is int:
-                tree.append( RepeatSectionStart(repetition[token]) )
-            else:
+            if repetition[token] == 'end':
                 tree.append( RepeatSectionEnd() )
+            else:
+                tree.append( RepeatSectionStart(repetition[token]) )
             continue
 
         elif token in octavation:
@@ -271,7 +305,7 @@ def parse(expr):
 
         chord_notes = []
 
-        for i, symbol in enumerate(token):
+        for symbolIndex, symbol in enumerate(token):
             beamed = False
             try:
                 note_pitch = get_pitch(symbol)
@@ -283,21 +317,27 @@ def parse(expr):
             except InvalidSymbolError:
                 if symbol == operators['prolonger']:
                     chord_notes[-1].increase_length_exponent()
-                if symbol == note_dot and len(chord_notes) > 0:
+                elif symbol == note_dot and len(chord_notes) > 0:
                     chord_notes[-1].add_dot_length()
-                if symbol == '.':
+                elif symbol == '.':
                     beamed = True
-                if ((symbol in accidentals_symbols or
+                elif ((symbol in accidentals_symbols or
                     symbol in articulations_symbols or
                     symbol in ornaments_symbols or
-                    (symbol == operators['inverter'] and token[i-1] in ornaments_symbols) or # for the case of inverted ornamentation
+                    (symbol == operators['inverter'] and token[symbolIndex-1] in ornaments_symbols) or # for the case of inverted ornamentation
                     symbol == accent_mark
                     ) and len(chord_notes) > 0):
                     chord_notes[-1].add_diacritical_mark(symbol)
                 elif symbol == operators['inverter']: # stem inversion
                     chord_notes[-1].invertStem()
+                elif symbol in simple_punctuation:
+                    pass
+                else:
+                    raise SyntaxException([tokenIndex, stack, expr])
         
         if len(chord_notes) > 0:
             tree.append( Chord(chord_notes, beamed) )
+        else:
+            raise SyntaxException([tokenIndex, stack, expr])
 
     return tree

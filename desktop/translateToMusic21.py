@@ -151,6 +151,11 @@ def translateToMusic21(tree, preserveStemDirection=False):
             continue
         
         if isinstance(structure, End):
+            if len(repeatEnds) != 0: # close last repeat section
+                startMeasureNo, endingNo = repeatEnds.pop()
+                endMeasureNo = measure['current'].number
+                repeat.insertRepeatEnding(part, startMeasureNo, endMeasureNo, endingNumber=endingNo, inPlace=True)
+                
             measure['current'].append( bar.Barline(style='final') )
             insertNewMeasure()
             continue
@@ -158,7 +163,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
         
         # (dynamics)
         if isinstance(structure, Dynamic):
-            if isinstance(measure['current'][-1], chord.Chord) or isinstance(measure['current'][-1], note.Note):
+            if len(measure['current']) > 0 and isinstance(measure['current'][-1], chord.Chord) or isinstance(measure['current'][-1], note.Note):
                 lastChordOffset = measure['current'][-1].offset
                 measure['current'].insert(lastChordOffset, dynamics.Dynamic(structure.get_m21dynamic()))
             else:
@@ -166,7 +171,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
             continue
         
         if isinstance(structure, GradualDynamic):
-            if isinstance(measure['current'][-1], chord.Chord):
+            if len(measure['current']) > 0 and isinstance(measure['current'][-1], chord.Chord):
                 lastChordOffset = measure['current'][-1].offset
                 if structure.get_name() == 'crescendo':
                     measure['current'].insert(lastChordOffset, dynamics.Crescendo() )
@@ -182,7 +187,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
         
         # (repeat structures)
         if isinstance(structure, RepeatFrom):
-            if not isinstance(measure['current'][-1], bar.Repeat):
+            if len(measure['current']) > 0 and not isinstance(measure['current'][-1], bar.Repeat):
                 insertNewMeasure()
             measure['current'].leftBarline = bar.Repeat(direction='start')
             continue
@@ -253,7 +258,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
         #(ottava)
         if isinstance(structure, OctavationStart):
             otp = structure.octaveTranspositions
-            if otp == 0: # single octavation
+            if otp == 0 and len(measure['current']) > 0: # single octavation
                 measure['current'][-1].transpose('p8', inPlace=True)
                 ottava = spanner.Ottava(measure['current'][-1], type='8va')
                 measure['current'].append(ottava)
@@ -330,9 +335,9 @@ def translateToMusic21(tree, preserveStemDirection=False):
         part.remove(part[-1]) # measure['current']
     
     # Separate overlaps
-    for partid, mno in makeVoices:
-        p = score.getElementById(partid)
-        p[mno].makeVoices() # ugly results when durations don't fit
+    for partId, measureNo in makeVoices:
+        p = score.getElementById(partId)
+        p[measureNo].makeVoices() # ugly results when durations don't fit, automatically generated rests
     
     # Automatic beams
     # if autoBeams:
@@ -382,4 +387,4 @@ if __name__ == '__main__':
         if len(sys.argv) == 3:
             writeStream(s, format=sys.argv[2])
     else:
-        print "Usage:\n\t$ python parser.py [string] [format]\nOutput path is current working directory."
+        print "Usage:\n\t$ python translateToMusic21.py [string] [format]\nOutput path is current working directory."

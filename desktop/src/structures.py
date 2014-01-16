@@ -265,7 +265,7 @@ class LongRepeatTo(RepeatTo):
 
 class RepeatSectionStart(object):
     def __init__(self, n):
-        self.n = n
+        self.n = n # string
     
     def __str__(self):
         return "({}th repeat section start)".format(self.n)
@@ -319,15 +319,28 @@ class KeySignature(object):
         return self.signature
 
 class TimeSignature(object):
-    def __init__(self, numerator, denominator):
+    def __init__(self, numerator, denominator=None):
         self.numerator = numerator
         self.denominator = denominator
+        self.c = None
+        if not denominator:
+            if numerator == 'c':
+                self.c = numerator
+                self.numerator = 4
+                self.denominator = 4
+            elif numerator == 'cut':
+                self.c = numerator
+                self.numerator = 2
+                self.denominator = 2
 
     def __str__(self):
         return "(timesig {} / {})".format(self.numerator, self.denominator)
     
     def get_m21fractionalTime(self):
-        return str(self.numerator) + '/' + str(self.denominator)
+        if not self.c:
+            return str(self.numerator) + '/' + str(self.denominator)
+        else: # MusicXML does not yet support symbolized times, but it's been implemented
+            return self.c
 
 class Dynamic(object):
     def __init__(self, dynamic):
@@ -357,7 +370,7 @@ class OctavationStart(object):
         if self.octaveTranspositions == 0:
             return "(8va)"
         else:
-            return "(8va[{}x])---{".format(self.octaveTranspositions)
+            return "(8va[{}x])---".format(self.octaveTranspositions) + "{"
 
 class OctavationEnd(object):
     def __str__(self):
