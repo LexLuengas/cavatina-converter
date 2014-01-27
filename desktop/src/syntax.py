@@ -187,7 +187,7 @@ def tokenize(expr):
         ) or ( # gradual dynamics: crescendo, long form
             current == 'l' and previous == 'l'
         ) or ( # repeats
-            (current == 'o' or current == operators['inverter']) and previous[0] == 'o'
+            (current == 'o' or current == operators['inverter']) and previous[-1] == 'o'
         ) or ( # repeat references with indications
             current in ['i','I'] and previous in repeat_reference
         ) or ( # octavation

@@ -9,7 +9,7 @@ testStrings = {
     'time signatures' : '_~44D D D D,~68d d d d d d,~128D,~1216,~816.',
     'pitches' : {
             'eighths' : 'z x c v b n m a s d f g h j q w e r t y u 1 2 3 4 5 6 7 8 9 0',
-            'quarters' : 'Z X C V B N M A S D F G H J Q W E R T Y U ! @ # $ % ^ & * ( )',
+            'quarters' : 'Z X C V B N M A S D F G H J Q W E R T Y U ! @ # $ % ^ & * ( )'
         },
     'chords' : {
         'eighths': ', adg sfh dgj fhq etu, zcb 680 zh0, sd dfg asdfghj,',
@@ -18,7 +18,7 @@ testStrings = {
         },
     'rests' : {
         'simple' : ', f G H~ J~~, ] } ]] }~ }~~.',
-        'dotted' : ', ] } ]< }< ]]< }~< }~~<.',
+        'dotted' : ', ] } ]< }< ]]< }~< }~~<.'
         },
     'note-length modifiers' : ', a a~ a~~, A A~ A~~, D D< D~< D~~<, d d< d~< d~~<.',
     'accidentals' : ', a a- a--, g g= g==, f- f= f-=.',
@@ -29,11 +29,11 @@ testStrings = {
                 ', A A A A; A A A A,o A A A A o`,oo A A A A o`:',
                 ', A A A A; A A A Ao, A A A A o`oo, A A A A o`:',
                 ', A A A A; A A A Ao, A A A A oo, A A A A :',
-            ],
+            ]
         },
     'coda & segno' : {
         'simple' : ', A A A Ai, A A A AI, A A A A.',
-        'references' : ', D Dk, D DK, D Dki , D DkI , D DKi , D DKI ;I  ,i  :',
+        'references' : ', D Dk, D DK, D Dki , D DkI , D DKi , D DKI ;I  ,i  :'
         },
     'dynamics' : r', g\, g\\, g\\\, g|, g||, g|||, g\|, g|\, g\\\|, g||\, g\\|',
     'expressions' : ', d[ d[[ d[[[ d[[[[ g, d[[[[[ d d, d[[[[[[ d d d, d[`, d{ d{`.',
@@ -47,8 +47,8 @@ testStrings = {
         'muliple parts' : [
                 r',+ D~~,' + '\n' + r',\_ F~~,' + '\\' + '\n' + r',\_+ S~~,' + '\\', # 3 parts
                 r',+ D~~,' + '\n' + r',\_ F~~,' + '\\' + '\n' + r',+ G~,' + '\n' + r',\_ R~,' + '\\', # 2 parts
-            ],
-        },
+            ]
+        }
 }
 
 class GlobalTester(unittest.TestCase):
@@ -153,9 +153,10 @@ class GlobalTester(unittest.TestCase):
         t1 = parse(sSimple)
         score1 = translateToMusic21(t1)
         _show(score1)
-        t2 = parse(sReferences)
-        score2 = translateToMusic21(t2)
-        _show(score2)
+        for r in sReferences:
+            t2 = parse(r)
+            score2 = translateToMusic21(t2)
+            _show(score2)
     
     def testCodaAndSegno(self):
         sSimple = testStrings['coda & segno']['simple']
