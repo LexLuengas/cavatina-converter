@@ -6,6 +6,9 @@ from parser import *
 import translateToMusic21 as translator
 
 def writeFiles(filename, outfilename, filedir=None):
+    """
+    Input file format may be .txt or .rtf
+    """
     if filedir:
         filename = join(filedir, filename)
         outfilename = join(filedir, outfilename)
@@ -24,6 +27,18 @@ def writeFiles(filename, outfilename, filedir=None):
             
 
 if __name__ == "__main__":
-    filename = "in.txt"
-    outfilename = "out.txt"
-    writeFiles(filename, outfilename, './io')
+    import sys
+    if len(sys.argv) > 1:
+        if len(sys.argv) == 2 and sys.argv[1] == '-h':
+            print "Usage:\tpython write.py [input file path] [output directory]"
+        else:
+            filename = sys.argv[1]
+            if len(sys.argv) == 3:
+                filedir = sys.argv[2]
+            else:
+                filedir = None
+            outfilename = "out.txt"
+            writeFiles(filename, outfilename, filedir)
+    else:
+        print "Usage:\tpython write.py [input file path] [output directory]"
+        

@@ -13,9 +13,9 @@ def MatchIndex(regexpr,array):
     return None
 
 class TimeInterval(object):
-    def __init__(self, length_exponent=0):
+    def __init__(self, length_exponent=0, denominator=8):
         self.length_exponent = length_exponent
-        self.denominator = 8
+        self.denominator = denominator
         self.set_length_exponent(self.length_exponent)
 
     def set_length_exponent(self, length_exponent):
@@ -36,12 +36,12 @@ class TimeInterval(object):
         return (float(self.length) / self.denominator) * 4
 
 class Note(TimeInterval):
-    def __init__(self, pitch, key_signature, length_exponent=0):
+    def __init__(self, pitch, key_signature, length_exponent=0, denominator=8):
         self.pitch = pitch
         self.stemDirection = 'up' if note_range[self.pitch] in 'zxcvbnmasdfghZXCVBNMASDFGH' else 'down'
         self.key_signature = key_signature
         self.set_pitch(self.pitch)
-        super(Note, self).__init__(length_exponent)
+        super(Note, self).__init__(length_exponent, denominator)
         
         self.note_diacritics = [] # list of strings containing all note alterations and note articulations as *input* symbols.
         

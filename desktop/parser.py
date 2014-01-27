@@ -262,9 +262,9 @@ def MatchIndex(regexpr,array):
     return None
 
 class TimeInterval(object):
-    def __init__(self, length_exponent=0):
+    def __init__(self, length_exponent=0, denominator=8):
         self.length_exponent = length_exponent
-        self.denominator = 8
+        self.denominator = denominator
         self.set_length_exponent(self.length_exponent)
 
     def set_length_exponent(self, length_exponent):
@@ -285,12 +285,12 @@ class TimeInterval(object):
         return (float(self.length) / self.denominator) * 4
 
 class Note(TimeInterval):
-    def __init__(self, pitch, key_signature, length_exponent=0):
+    def __init__(self, pitch, key_signature, length_exponent=0, denominator=8):
         self.pitch = pitch
         self.stemDirection = 'up' if note_range[self.pitch] in 'zxcvbnmasdfghZXCVBNMASDFGH' else 'down'
         self.key_signature = key_signature
         self.set_pitch(self.pitch)
-        super(Note, self).__init__(length_exponent)
+        super(Note, self).__init__(length_exponent, denominator)
         
         self.note_diacritics = [] # list of strings containing all note alterations and note articulations as *input* symbols.
         
@@ -697,6 +697,76 @@ def get_pitch(symbol):
 def get_splitter_length(symbol):
     return splitter_length[symbol]
 
+def find_all(s, sub):
+    start = 0
+    while True:
+        start = s.find(sub, start)
+        if start == -1:
+            return
+        yield start
+        start += len(sub)
+
+def generateBoldIndexSet(boldRanges):
+    boldSet = []
+    for start, end in boldRanges:
+        boldSet.extend(range(start,end))
+    return boldSet
+
+def getTextAndRTFBoldRegion(rtf):
+    """
+    Lazy parsing of a RTF file, only extracting 'bold' formattings.
+    """
+    fontDefIndex = rtf.find('\\fonttbl\\f0')
+    if fontDefIndex == -1: # input is not in RTF format
+        return [rtf, []]
+    
+    cut1 = fontDefIndex + 48
+    rtf = rtf[cut1:]
+    cut2 = rtf.find('\\f0') + 3
+    rtf = rtf[cut2:]
+    rtf = re.sub(r'\\\'..', r'¿', rtf)
+    rtf = re.sub(r'\\\n', r'\n', rtf)
+    cut3 =  rtf.find('\\cf0 ')
+    if '\\b' in rtf[:cut3]: # leading '\b'
+        rtf = '\\b' + rtf[cut3 + 4:]
+    else:
+        rtf = rtf[cut3 + 4:]
+    
+    # trim off aditional formatting
+    fmt = False
+    rtfFiltered = ''
+    for i in range(len(rtf)):
+        if not fmt:
+            if rtf[i] == '\\':
+                fmt = True
+            elif rtf[i] != '\n' or rtf[i+1] != '\\':
+                rtfFiltered += rtf[i]
+        else:
+            if rtf[i] == 'b' and rtf[i-1] == '\\':
+                if rtf[i+1] == ' ' or rtf[i+1] == '0':
+                    rtfFiltered += '\\b'
+                    fmt = False
+            elif rtf[i] == ' ':
+                fmt = False
+    rtf = rtfFiltered[:-1]
+    
+    rawMatches = [m.start() for m in re.finditer(r'\\b0?[ \\]', rtf)]
+    unpairedMatches = [x - (i*3 + i/2) for i, x in enumerate(rawMatches)]
+    
+    txt = re.sub(r'\\b0? ', r'', rtf)
+    
+    boldRanges = []
+    i = 0
+    while i*2 <= len(unpairedMatches) - 1:
+        if i*2 == len(unpairedMatches) - 1:
+            boldRanges.append( (unpairedMatches[i*2], len(txt)) )
+        else:
+            boldRanges.append( (unpairedMatches[i*2], unpairedMatches[i*2 + 1]) )
+        i += 1
+    
+    boldIndexSet = generateBoldIndexSet(boldRanges)
+    return [txt, boldIndexSet]
+
 def tokenize(expr):
     if len(expr) <= 1:
         return [expr]
@@ -793,6 +863,8 @@ def tokenize(expr):
             current == '.' and previous == '.'
         ) or ( # error sign
             current == punctuation['bold_double_barline'] and previous == punctuation['bold_double_barline']
+        ) or ( # bold
+            current == 'b' and previous == '\\'
         ):
             stack.append(previous + current)
         else:
@@ -801,14 +873,19 @@ def tokenize(expr):
         
     return stack
 
-def parse(expr):
-    stack = tokenize(expr)
+def parse(content):
+    rawText, boldIndexSet = getTextAndRTFBoldRegion(content)
+    stack = tokenize(rawText)
     tree = []
     current_key_signature = KeySignature(clefs['+']) #   this variable is the last defined key signature and affects all
     #                                                       succeeding note objects. If no key signature is yet defined when
     #                                                       a note is entered, the G-clef without accidentals is assumed.
+    globalPos = 0
 
     for tokenIndex, token in enumerate(stack):
+        if tokenIndex > 0: # update globalPos
+            globalPos += len(stack[tokenIndex - 1])
+        
         if token == '\n':
             tree.append(Newline())
             continue
@@ -950,19 +1027,37 @@ def parse(expr):
             continue
         
         elif token[0] in rests:
-            if token[:2] == ']]': # implicit prolongation
-                tree.append ( Rest(1) )
-                token = token[2:]
-                
-            for symbol in token:
-                if symbol == ']':
-                    tree.append ( Rest(0) )
-                elif symbol == '}':
+            if globalPos in boldIndexSet:
+                # Bold weight ~ 1/16 unity
+                if token[:2] == ']]': # implicit prolongation
+                    tree.append ( Rest(1, denominator=16) )
+                    token = token[2:]
+                    
+                for symbol in token:
+                    if symbol == ']':
+                        tree.append ( Rest(0, denominator=16) )
+                    elif symbol == '}':
+                        tree.append ( Rest(1, denominator=16) )
+                    elif symbol == note_dot:
+                        tree[-1].add_dot_length()
+                    elif symbol == operators['prolonger']:
+                        tree[-1].increase_length_exponent()
+            else:
+                # Regular weight ~ 1/8 unity
+                if token[:2] == ']]': # implicit prolongation
                     tree.append ( Rest(1) )
-                elif symbol == note_dot:
-                    tree[-1].add_dot_length()
-                elif symbol == operators['prolonger']:
-                    tree[-1].increase_length_exponent()
+                    token = token[2:]
+                    
+                for symbol in token:
+                    if symbol == ']':
+                        tree.append ( Rest(0) )
+                    elif symbol == '}':
+                        tree.append ( Rest(1) )
+                    elif symbol == note_dot:
+                        tree[-1].add_dot_length()
+                    elif symbol == operators['prolonger']:
+                        tree[-1].increase_length_exponent()
+                
             continue
 
         chord_notes = []
@@ -971,10 +1066,18 @@ def parse(expr):
             beamed = False
             try:
                 note_pitch = get_pitch(symbol)
-                if note_pitch >= eighth_note_range: # quarter notes
-                    chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=1) )
-                else: # eighth notes
-                    chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=0) )
+                if globalPos in boldIndexSet:
+                    # Bold weight ~ 1/16 unity
+                    if note_pitch >= eighth_note_range: # eighth notes
+                        chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=1, denominator=16) )
+                    else: # 16th notes
+                        chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=0, denominator=16) )
+                else:
+                    # Regular weight ~ 1/8 unity
+                    if note_pitch >= eighth_note_range: # quarter notes
+                        chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=1) )
+                    else: # eighth notes
+                        chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=0) )
                 
             except InvalidSymbolError:
                 if symbol == operators['prolonger']:
@@ -995,7 +1098,7 @@ def parse(expr):
                 elif symbol in simple_punctuation:
                     pass
                 else:
-                    raise SyntaxException([tokenIndex, stack, expr])
+                    raise SyntaxException([tokenIndex, stack, rawText])
         
         if len(chord_notes) > 0:
             tree.append( Chord(chord_notes, beamed) )
