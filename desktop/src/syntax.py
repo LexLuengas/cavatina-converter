@@ -48,7 +48,7 @@ def find_all(s, sub):
 def generateBoldIndexSet(boldRanges):
     boldSet = []
     for start, end in boldRanges:
-        boldSet.extend(range(start,end))
+        boldSet.extend(range(start, end))
     return boldSet
 
 def getTextAndRTFBoldRegion(rtf):
@@ -67,25 +67,27 @@ def getTextAndRTFBoldRegion(rtf):
     rtf = re.sub(r'\\\n', r'\n', rtf)
     cut3 =  rtf.find('\\cf0 ')
     if '\\b' in rtf[:cut3]: # leading '\b'
-        rtf = '\\b' + rtf[cut3 + 4:]
+        rtf = '\\b' + rtf[cut3 + 5:]
     else:
-        rtf = rtf[cut3 + 4:]
+        rtf = rtf[cut3 + 5:]
     
     # trim off aditional formatting
     fmt = False
     rtfFiltered = ''
     for i in range(len(rtf)):
         if not fmt:
-            if rtf[i] == '\\':
+            if rtf[i] == '\\' and (rtf[i+1] != '\\' and rtf[i-1] != '\\'): # catch \\, ignoring the backslash escape sequence
+                # all RTF style format strings start with a backslash
                 fmt = True
-            elif rtf[i] != '\n' or rtf[i+1] != '\\':
+            elif not (rtf[i] == '\n' and rtf[i+1] == '\\' and rtf[i+2] != '\n'): # \n \\ (non-\n character)
+                # style format strings are preceded by a new line
                 rtfFiltered += rtf[i]
-        else:
+        else: # check for format string commands
             if rtf[i] == 'b' and rtf[i-1] == '\\':
                 if rtf[i+1] == ' ' or rtf[i+1] == '0':
                     rtfFiltered += '\\b'
                     fmt = False
-            elif rtf[i] == ' ':
+            elif rtf[i] == ' ': # don't parse until after the format string 
                 fmt = False
     rtf = rtfFiltered[:-1]
     
@@ -220,7 +222,10 @@ def parse(content):
     #                                                       succeeding note objects. If no key signature is yet defined when
     #                                                       a note is entered, the G-clef without accidentals is assumed.
     globalPos = 0
-
+    
+    if stack[0] == '':
+        return tree
+    
     for tokenIndex, token in enumerate(stack):
         if tokenIndex > 0: # update globalPos
             globalPos += len(stack[tokenIndex - 1])
