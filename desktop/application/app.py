@@ -149,6 +149,7 @@ class MainFrame(wx.Frame):
         self.removeColored = None
         self.lastColoredLength = 0
         self.tsActive = 0
+        self.removeColorAfter = None
         
         bpSizer = wx.BoxSizer(wx.VERTICAL)
         bpSizer.Add(self.scoreBox, wx.ID_ANY, wx.EXPAND|wx.RIGHT, -15) # Negative border, TODO: fix border bug the right way
@@ -776,6 +777,9 @@ class MainFrame(wx.Frame):
         colorAttr.SetFlags(wx.TEXT_ATTR_TEXT_COLOUR)
         
         dontColor = False # for testing
+        removeColorAfter = None
+        #   this variable is needed when the colored span wont be removed 
+        #   with self.removeColored
         
         # ==================
         # = Color Text Box =
@@ -914,15 +918,14 @@ class MainFrame(wx.Frame):
             
             if score[caret] in ",.;:": # TODO: systemic barlines
                 if caret > 0 and score[caret - 1] == ",":
-                    dontColor = True
-                    break
-                    # colorStart = caret - 1
-                    # colorLength = 2
+                    colorStart = caret - 1
+                    colorLength = 2
+                    removeColorAfter = (colorStart, colorStart + colorLength)
                 elif caret + 1 < len(score) and score[caret + 1] == ",":
                     caret = caret + 1
                     colorStart = self.caretPos # color barline
                     colorLength = 2
-                    removeColorAfter = () # this variable is needed when the colored span wont be removed with self.removeColored
+                    removeColorAfter = (caret, caret + colorLength)
                     
                 ghostComma =  u"\u02FD"
                 insertionIndex = insertColorString(ghostComma, caret + 1)
@@ -937,6 +940,13 @@ class MainFrame(wx.Frame):
             
             break
         
+        if self.removeColorAfter:
+            start, end = self.removeColorAfter
+            colorAttr.SetTextColour("BLACK")
+            self.scoreBox.SetStyle( (start, end), colorAttr )
+        self.removeColorAfter = removeColorAfter
+        
+        # Coloring
         colorAttr.SetTextColour("BLACK")
         self.scoreBox.SetStyle( (self.lastCaretPos, self.lastCaretPos + 1 + colorLength), colorAttr )
         if not dontColor:
