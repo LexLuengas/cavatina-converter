@@ -8,7 +8,7 @@ import time
 import re
 import tempfile
 
-import pygame
+import pygame.mixer as mixer
 
 from music21 import stream #    try harder to avoid importing
 #                               from music21 from outside the parser
@@ -35,9 +35,26 @@ ARROW_KEYS = [wx.WXK_LEFT, wx.WXK_RIGHT, wx.WXK_UP, wx.WXK_DOWN]
 WILDCARD = "RTF files (*.rtf)|*.rtf|Text files (*.txt)|*.txt"
 TYPES = [rt.RICHTEXT_TYPE_RTF, rt.RICHTEXT_TYPE_TEXT]
 
+# Musical raw input
+NOTES = "zxcvbnmasdfghjqwertyu1234567890ZXCVBNMASDFGHJQWERTYU!@#$%^&*()"
+FLOATING_NOTES = [eval("u\"\\u%04.x\"" % i) for i in range(592, 623)] # unicode codepoints assigned *.ft glyphs. (Glyph substitutions don't seem to work on private use area [U+E000-U+F8FF] coded glyphs.)
+INVISIBLE_NOTES = [eval("u\"\\u%04.x\"" % i) for i in range(623, 654)] # unicode codepoints assigned *.tp glyphs.
+NOTE_MODIFIERS = """-="'[{\|<"""
+MODIFIER_GROUPS = {
+    0: r"-=",
+    1: r"\"\'",
+    2: r"\[{",
+    3: r"\\|",
+    4: r"<"
+}
+CLEFS = "_+"
+TIMEMOD = "~"
+INVERTER = "`"
+
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(MainFrame, self).__init__(*args, **kwargs)
+        # self.SetBackgroundColour('WHITE') # doesn't diminish flickering
         # file info
         self.dirName = ''
         self.filePath = ''
@@ -53,8 +70,8 @@ class MainFrame(wx.Frame):
         frameTitle = "Cavatina — Untitled"
         self.SetTitle(frameTitle)
         # audio
-        pygame.mixer.init()
-        pygame.mixer.music.set_volume(1.0)
+        mixer.init()
+        mixer.music.set_volume(1.0)
         # UI
         self.initUI()
         self.initContent()
@@ -81,7 +98,7 @@ class MainFrame(wx.Frame):
         self.statusBar.Show() 
         
         # Geometry
-        self.SetSize((1000, 600))
+        self.SetSize((800, 600))
         
         # Splitter
         mainSizer = wx.BoxSizer(wx.VERTICAL)
@@ -105,6 +122,7 @@ class MainFrame(wx.Frame):
         self.lastCaretPosClicked = -1
         self.lastEvent = None
         self.repositionCaret = None
+        self.wasSelected = False
         
         tpSizer = wx.BoxSizer(wx.VERTICAL)
         tpSizer.Add(self.textBox, wx.ID_ANY, wx.EXPAND | wx.ALL, 15)
@@ -128,9 +146,12 @@ class MainFrame(wx.Frame):
         self.scoreBox.SetMargins(wx.Point(50, 10))
         self.scoreBox.GetCaret().Hide()
         self.scoreBox.SetDoubleBuffered(True)
+        self.removeColored = None
+        self.lastColoredLength = 0
+        self.tsActive = 0
         
         bpSizer = wx.BoxSizer(wx.VERTICAL)
-        bpSizer.Add(self.scoreBox, wx.ID_ANY, wx.EXPAND | wx.ALL)
+        bpSizer.Add(self.scoreBox, wx.ID_ANY, wx.EXPAND|wx.RIGHT, -15) # Negative border, TODO: fix border bug the right way
         self.bottomPanel.SetSizer(bpSizer)
         self.scoreBox.Bind(wx.EVT_LEFT_UP, self.OnClick)
         
@@ -319,12 +340,21 @@ class MainFrame(wx.Frame):
         self.textBox.BeginSuppressUndo()
         self.scoreBox.BeginSuppressUndo()
         
+        # Post-event fixes
         if self.repositionCaret: # TODO: reposition correction
             self.textBox.SetInsertionPoint(self.repositionCaret)
             self.repositionCaret = None
             
         self.caretPos = self.textBox.GetCaretPosition()
         isUpdateKeyEvent = e.GetEventType() != wx.EVT_KEY_UP or e.GetKeyCode() in ARROW_KEYS
+        
+        if self.removeColored and self.lastCaretPos != self.caretPos:
+            colorStart, colorLength = self.removeColored
+            ip = self.scoreBox.GetInsertionPoint()
+            self.scoreBox.Remove(colorStart, colorStart + colorLength)
+            self.scoreBox.SetInsertionPoint(ip)
+            self.scoreBox.Refresh()
+            self.removeColored = None
         
         if self.lastCaretPos != self.caretPos and isUpdateKeyEvent:
             text = self.textBox.GetValue()
@@ -333,9 +363,13 @@ class MainFrame(wx.Frame):
             # Text modification
             if e.GetEventType() == ID_EVT_TEXT:
                 if self.lastTextLength > len(text): # on text deletion
-                    self.scoreBox.SetValue(text)
+                    scoreCaret = self.scoreBox.GetCaretPosition()
+                    self.scoreBox.Remove(scoreCaret, scoreCaret + 1)
                 else:
-                    self.scoreBox.WriteText(text[(self.lastCaretPos + 1):(self.caretPos + 1)])
+                    if not self.wasSelected:
+                        self.scoreBox.WriteText(text[(self.lastCaretPos + 1):(self.caretPos + 1)])
+                    else:
+                        self.scoreBox.SetValue(text)
                 text = self._fixGrandStaves(text)
                 scoreText = self.scoreBox.GetValue()
                 scoreText = self._fixTextOffsets(text, scoreText)
@@ -359,11 +393,17 @@ class MainFrame(wx.Frame):
                 self.textBox.SetStyle((0, len(text) + 1), colorAttr)
             
             # Update information
-            self.scoreBox.Refresh()
+            # self.scoreBox.Refresh()
             # self._transferBold()
             self._updateColors()
             self.lastCaretPos = self.caretPos
             self.lastTextLength = len(self.textBox.GetValue())
+        
+        fr, to = self.textBox.GetSelection()
+        if fr != -2:
+            self.wasSelected = True
+        else:
+            self.wasSelected = False
         
         self.lastEvent = e.GetEventType()
         self.textBox.EndSuppressUndo()
@@ -381,6 +421,10 @@ class MainFrame(wx.Frame):
             if fr != to and to >= 2:
                 self.textBox.SelectNone()
                 self.textBox.SetCaretPosition(to - 2)
+        if e.GetKeyCode() == wx.WXK_UP:
+            e.m_keyCode = wx.WXK_RIGHT
+        if e.GetKeyCode() == wx.WXK_DOWN:
+            e.m_keyCode = wx.WXK_LEFT
         e.Skip()
     
     def OnFont(self, e):
@@ -629,28 +673,39 @@ class MainFrame(wx.Frame):
             self.playAll = False
             
         if not self.midiFile:
-            print "Loading file"
-            self._loadFile()
+            # print "Loading file"
+            try:
+                self._loadFile()
+            except scoreParser.SyntaxException:
+                print "INVALID SYNTAX"
+                self.midiFile = None
+                # mixer.init()
+                return
         
         self._doPlayPause()
         self.toolBarRight.EnableTool(ID_STOP, True)
     
     def OnPlayAll(self, e):
         if not self.midiFile:
-            print "Loading file"
-            self._loadFile(playAll=True)
+            # print "Loading file"
+            try:
+                self._loadFile(playAll=True)
+            except scoreParser.SyntaxException:
+                print "INVALID SYNTAX"
+                self.midiFile = None
+                return
         
         self._doPlayPause()
         self.toolBarRight.EnableTool(ID_STOP, True)
     
     def OnTimer(self, e):
-        if not pygame.mixer.music.get_busy():
-            print "End of music"
+        if not mixer.music.get_busy():
+            # print "End of music"
             self.OnStop(None)
     
     def OnStop(self, e):
         self.timer.Stop()
-        pygame.mixer.music.stop()
+        mixer.music.stop()
         self.startTime = 0.0
         self.timeElapsed = 0.0
         
@@ -696,19 +751,197 @@ class MainFrame(wx.Frame):
         #     if "Cavatina" in n:
         #         print n
         testFont = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        return testFont.SetFaceName('Cavatina Regular') # or testFont.SetFaceName('Cavatina')
+        return testFont.SetFaceName('Cavatina Regular') # or testFont.SetFaceName('Cavatina') # boolean
     
     def _updateColors(self):
         """
-        Colors only the text at the last and current caret positions to 
+        Red coloring of the charecter at the caret position.
+        
+        This method only colors the text at the last and current caret positions to 
         diminish window flickering on the upper textbox.
         """
+        
+        # The idea is to first insert the dummy characters that are
+        # required for reasonable coloring (i.e. to help preserve the  
+        # triggering of character alternates), and *then* apply the
+        # standard coloring, instead of following a different coloring 
+        # procedure for such characters. If such characters were inserted, 
+        # they have to be deleted on the next text event (OnTextEnter).
+        
+        score = self.scoreBox.GetValue()
+        caret = self.scoreBox.GetCaretPosition()
+        colorStart = self.caretPos
+        colorLength = 1
         colorAttr = rt.RichTextAttr()
         colorAttr.SetFlags(wx.TEXT_ATTR_TEXT_COLOUR)
+        
+        dontColor = False # for testing
+        
+        # ==================
+        # = Color Text Box =
+        # ==================
+        
         colorAttr.SetTextColour("BLACK")
         self.textBox.SetStyle( (self.lastCaretPos, self.lastCaretPos + 1), colorAttr )
-        colorAttr.SetTextColour("RED")
+        colorAttr.SetTextColour(wx.Colour(0xF2, 0x20, 0x20, 255)) # F22020, FF7700
         self.textBox.SetStyle( (self.caretPos, self.caretPos + 1), colorAttr )
+        
+        # ===================
+        # = Color Score Box =
+        # ===================
+        def insertColorString(coloredChunk, insertionPoint=None):
+            """
+            Inserts the temporary color string at the end of the chord 
+            (or at insertionPoint if specified).
+            """
+            if insertionPoint is None:
+                chordEnd = len(score) - 1
+                for s in " ,;:/":
+                    index = score.find(s, caret)
+                    if index != -1:
+                        chordEnd = min(index, chordEnd)
+                insertionPoint = chordEnd
+            
+            self.scoreBox.SetInsertionPoint(insertionPoint)
+            self.scoreBox.WriteText(coloredChunk) # writes before the character at the insertion point
+            self.scoreBox.SetInsertionPoint(caret + 1)
+            return insertionPoint
+        
+        # Cases for score[caret]:
+        while True:
+            try: # if score[caret] is suffix of a time signature
+                if score[caret].isdigit():
+                    tildeIndex = score.rfind("~", max(0, caret - 4), caret)
+                    if tildeIndex <= 0:
+                        raise ValueError
+                    a = score[tildeIndex - 1]
+                    if a in "-=":
+                        reversedStr = score[max(0, tildeIndex - 8):tildeIndex][::-1]
+                        if not re.match(r"([-=]*[_\+])", reversedStr):
+                            raise ValueError
+                    if a in ",;:_+":
+                        if all(score[i].isdigit() for i in range(tildeIndex + 1, caret)):
+                            dontColor = True
+                            break
+                            # color time signature
+                            tsEnd = tildeIndex + self._getTimeSignatureEnd(score[tildeIndex:])
+                            # ts = score[tildeIndex:tsEnd] # TODO: case after key signature
+                            colorStart = tildeIndex - 1
+                            colorLength = tsEnd - tildeIndex + 1
+                            break
+            except ValueError:
+                pass
+        
+            try: # if score[caret] in NOTES
+                if score[caret] in [INVERTER, TIMEMOD]:
+                    reversedStr = score[:caret + 1][::-1] # include caret position
+                    nounIndex = caret - re.search(r"([-=\"\'\[{\\|<`~]+)", reversedStr).end() # reverse re search
+                    i = NOTES.index(score[nounIndex])
+                    isModifier = True
+                else:
+                    i = NOTES.index(score[caret])
+                    isModifier = False
+                note = score[caret]
+                noteIndex = i % 31
+                
+                # check if the note is a floating neighbor note
+                if not isModifier:
+                    chord, chordIndex, inverted = self._getChordNotes(score, caret)
+                else:
+                    chord, chordIndex, inverted = self._getChordNotes(score, nounIndex)
+                direction = 1 if noteIndex < 13 else 0 # 1: up, 0: down
+                if inverted: # TODO: not working
+                    direction = 1 - direction
+                
+                isFloating = False
+                if direction == 1:
+                    consecSizeBefore = self._getConsecSize(chord, chordIndex, noteIndex, -1)
+                    if consecSizeBefore > 0:
+                        isFloating = (consecSizeBefore % 2 == 1)
+                elif direction == 0:
+                    consecSizeAfter = self._getConsecSize(chord, chordIndex, noteIndex, 1)
+                    if consecSizeAfter > 0:
+                        isFloating = (consecSizeAfter % 2 == 1)
+                
+                if isFloating: # if note is floating neighbor note
+                    ghostNote = INVISIBLE_NOTES[noteIndex]
+                    if direction == 1:
+                        coloredChunk = ghostNote + note
+                    elif direction == 0:
+                        coloredChunk = note + ghostNote
+                    
+                    insertionIndex = insertColorString(coloredChunk)
+                    colorStart = insertionIndex
+                    colorLength = 2
+                    self.removeColored = (colorStart, colorLength)
+                    break
+                
+                floatingNote = FLOATING_NOTES[noteIndex]
+                insertionIndex = insertColorString(floatingNote)
+                colorStart = insertionIndex
+                colorLength = 1
+                self.removeColored = (colorStart, colorLength)
+                break
+            except ValueError:
+                pass
+            
+            try: # if score[caret] in NOTE_MODIFIERS
+                modIndex = NOTE_MODIFIERS.index(score[caret])
+                reversedStr = score[:caret + 1][::-1]
+                nounIndex = caret - re.search(r"([-=\"\'\[{\\|<`~]+)", reversedStr).end() # reverse re search
+                if score[nounIndex] not in NOTES:
+                    raise ValueError
+                modGroupString = MODIFIER_GROUPS[modIndex / 2]
+                reString = eval("r\"[" + modGroupString + "]+\"")
+                start = caret - re.search(reString, reversedStr).end() + 1
+                end = caret + re.search(reString, score[caret:]).end()
+                modifier = score[start:end]
+                self.coloredModSpan = (start, modifier) # TODO: erase the original modifier to get rid of the overlap
+                
+                i = NOTES.index(score[nounIndex])
+                note = score[nounIndex]
+                noteIndex = i % 31
+                ghostNote = INVISIBLE_NOTES[noteIndex]
+                coloredChunk = ghostNote + modifier
+                
+                insertionIndex = insertColorString(coloredChunk)
+                colorStart = insertionIndex
+                colorLength = len(coloredChunk)
+                self.removeColored = (colorStart, colorLength)
+                break
+            except ValueError:
+                pass
+            
+            if score[caret] in ",.;:": # TODO: systemic barlines
+                if caret > 0 and score[caret - 1] == ",":
+                    dontColor = True
+                    break
+                    # colorStart = caret - 1
+                    # colorLength = 2
+                elif caret + 1 < len(score) and score[caret + 1] == ",":
+                    caret = caret + 1
+                    colorStart = self.caretPos # color barline
+                    colorLength = 2
+                    removeColorAfter = () # this variable is needed when the colored span wont be removed with self.removeColored
+                    
+                ghostComma =  u"\u02FD"
+                insertionIndex = insertColorString(ghostComma, caret + 1)
+                # colorStart = self.caretPos; default
+                self.removeColored = (insertionIndex, 1) # remove U+02FD", which is *not* colored
+                break
+            
+            # else
+            if score[caret] in " `~":
+                dontColor = True
+                break
+            
+            break
+        
+        colorAttr.SetTextColour("BLACK")
+        self.scoreBox.SetStyle( (self.lastCaretPos, self.lastCaretPos + 1 + colorLength), colorAttr )
+        if not dontColor:
+            colorAttr.SetTextColour(wx.Colour(0xF2, 0x20, 0x20, 255)) # F22020, FF7700
+            self.scoreBox.SetStyle( (colorStart, colorStart + colorLength), colorAttr )
     
     def _transferBold(self):
         text = self.textBox.GetValue()
@@ -719,7 +952,6 @@ class MainFrame(wx.Frame):
                 i = i+1
             self.scoreBox.SetSelection(i, i+1)
             if self.textBox.IsSelectionBold():
-                # print i, text[i]
                 if not self.scoreBox.IsSelectionBold():
                     self.scoreBox.ApplyBoldToSelection()
             else:
@@ -753,25 +985,65 @@ class MainFrame(wx.Frame):
         return text
     
     def _fixTextOffsets(self, text, scoreText):
-        if len(scoreText) > 0:
-            # fix bottom offsets
-            if scoreText[-1] != "\n":
-                self.scoreBox.AppendText("\n")
-            # fix top offsets
-            firstLineIndex = text.find("\n")
-            firstLine = text[:firstLineIndex] if firstLineIndex > -1 else text
-            anyDigits = any(c.isdigit() for c in firstLine)
-            anyTall = any(c in firstLine for c in [s + "`" for s in list("qwertyu")]) \
-                or re.search(r"`[jqwertyuJQWERTYU]\S*[wertyu]", firstLine) \
-                or re.search(r"[zxcvbnmasdfghZXCVBNMASDFGH]\S*[wertyu]", firstLine)
-            if (anyDigits or anyTall) and scoreText[0] != "\n":
-                # also ugly, but haven't found any other alternative
-                self.scoreBox.SetValue("\n" + scoreText)
-                scoreText = self.scoreBox.GetValue()
-                spacing = rt.RichTextAttr()
-                spacing.SetFlags(wx.TEXT_ATTR_LINE_SPACING)
-                spacing.SetLineSpacing(4)
-                self.scoreBox.SetStyle((0, 1), spacing)
+        """
+        Correct offset clippings of the text rendering engine.
+        """
+        
+        # The offset issues (top, bottom and interlineal) arise from the 
+        # fact that the (font glyph) overshoot of extremal notes is 
+        # unusually large, which was necessary to set the a normalized line 
+        # separation. This happens becuase the text rendering engine seems 
+        # to only refresh the currently entered line within its bounding 
+        # box.
+        # 
+        # Top and bottom offset clipping is dealt with by adding newline 
+        # characters. Setting new margins doesn't help because every offset 
+        # is clipped *outside* the bounding box of the text area; the 
+        # margins only control the size of the bounding box, not the 
+        # distance to it.
+        # 
+        # Interlineal offset clipping is solved by selecting text 
+        # contained inside the lines causing the issue, so we just select 
+        # all text.
+        
+        if len(scoreText) == 0:
+            return scoreText
+            
+        # fix bottom offsets
+        if scoreText[-1] != "\n":
+            self.scoreBox.AppendText("\n")
+        # fix top offsets
+        firstLineIndex = text.find("\n")
+        firstLine = text[:firstLineIndex] if firstLineIndex > -1 else text
+        #   remove time signatures strings
+        lineSuffix = firstLine
+        cutfirstLine = ""
+        while self._getTimeSignatureEnd(lineSuffix): # equal to 0 in case there is no ts
+            tsEnd = self._getTimeSignatureEnd(lineSuffix)
+            cutfirstLine += lineSuffix[:tsEnd-4]
+            lineSuffix = lineSuffix[tsEnd:]
+        else:
+            cutfirstLine += lineSuffix
+        if len(cutfirstLine) > 0:
+            firstLine = cutfirstLine
+            
+        tilde = firstLine.rfind('~')
+        if (tilde != -1
+        and tilde != len(firstLine) - 1
+        and all(c.isdigit() for c in firstLine[tilde + 1:])):
+            firstLine = firstLine[:tilde] # remove the time signature being written
+        #   (end) remove time signatures strings
+        anyDigits = any(c.isdigit() for c in firstLine)
+        anyTall = (any(c in firstLine for c in [s + "`" for s in list("qwertyu")])
+            or re.search(r"`[jqwertyuJQWERTYU]\S*[wertyu]", firstLine)
+            or re.search(r"[zxcvbnmasdfghZXCVBNMASDFGH]\S*[wertyu]", firstLine))
+        if (anyDigits or anyTall) and scoreText[0] != "\n":
+            scoreText = "\n" + scoreText
+            self.scoreBox.SetValue(scoreText)
+            spacing = rt.RichTextAttr()
+            spacing.SetFlags(wx.TEXT_ATTR_LINE_SPACING)
+            spacing.SetLineSpacing(4)
+            self.scoreBox.SetStyle((0, 1), spacing)
                 
         # fix multi-line offsets
         self.scoreBox.SetFocus()
@@ -786,9 +1058,7 @@ class MainFrame(wx.Frame):
             rtf = writeRTF(self.textBox, self.caretPos)
         else:
             centipede = self._textAfterPosition()
-            print "".join([s for s, b in centipede])
             rtf = writeRTFshort(centipede)
-            print rtf
         
         self.midiFile = tempfile.NamedTemporaryFile(suffix='.mid', delete=False)
         path = self.midiFile.name
@@ -801,28 +1071,28 @@ class MainFrame(wx.Frame):
             scoreComposer=self.composer,
             scoreTempo=self.tempo,
             scoreInstruments=self.instruments)
-        pygame.mixer.init()
-        pygame.mixer.music.load(path)
+        mixer.init()
+        mixer.music.load(path)
     
     def _doPlayPause(self):
         if self.isPaused: # Unpause
-            print "Unpausing"
+            # print "Unpausing"
             self._unpause()
             self.isPaused = False
         else:
-            if pygame.mixer.music.get_busy(): # Pause
-                print "Pausing"
+            if mixer.music.get_busy(): # Pause
+                # print "Pausing"
                 self._pause()
                 self.isPaused = True
             else: # Play
-                print "Playing"
+                # print "Playing"
                 self._play()
                 self.isPaused = False
         self._togglePlayPauseTool()
     
     def _togglePlayPauseTool(self):
         self.toolBarRight.RemoveTool(ID_PLAY_PAUSE)
-        if self.isPaused or not pygame.mixer.music.get_busy():
+        if self.isPaused or not mixer.music.get_busy():
             self.playPause = self.toolBarRight.InsertTool(0, ID_PLAY_PAUSE,
                 self.playBitmap, shortHelpString="Play", longHelpString="Play")
         else:
@@ -835,8 +1105,8 @@ class MainFrame(wx.Frame):
     def _play(self):
         if self.midiFile:
             path = self.midiFile.name # re-load file
-            pygame.mixer.music.load(path)
-        pygame.mixer.music.play()
+            mixer.music.load(path)
+        mixer.music.play()
         # time.sleep(0.2)
         self.timer.Start(500)
         self.startTime = time.time()
@@ -844,14 +1114,14 @@ class MainFrame(wx.Frame):
     def _pause(self):
         self.timeElapsed += time.time() - self.startTime
         self.timer.Stop()
-        pygame.mixer.music.stop() # pausing not supported for midi
+        mixer.music.stop() # pausing not supported for midi
         # time.sleep(0.2)
         
         self.midiFile = None
         self._loadMIDISuffix(self.timeElapsed)
     
     def _unpause(self):
-        pygame.mixer.music.play()
+        mixer.music.play()
         # time.sleep(0.2)
         self.timer.Start(500)
         self.startTime = time.time()
@@ -1018,10 +1288,7 @@ class MainFrame(wx.Frame):
             partString = "".join([s for (s, b) in part]) # remember that parts are also centipedes
             i = re.search(r"[,\\]+", partString).end(0)
             j = re.search(r"[^-=,_+\\]", partString).start(0)
-            k = j + max(re.search(r"(~\d\d)?", partString[j:]).end(0),
-                re.search(r"(~12\d)?", partString[j:]).end(0),
-                re.search(r"(~\d16)?", partString[j:]).end(0),
-                re.search(r"(~1216)?", partString[j:]).end(0))
+            k = j + self._getTimeSignatureEnd(partString[j:])
             signatures[partNumber] = (partString[i:j], partString[j:k]) # (key signature, time signature)
         
         # cut parts
@@ -1081,6 +1348,72 @@ class MainFrame(wx.Frame):
         # print "".join([s for s, b in zippedText])
         return zippedText
     
+    def _getTimeSignatureEnd(self, target):
+        """
+        Returns the end-index of the first time signature in the target 
+        string.
+        """
+        try:
+            firstTS = re.search(r"(~\d\d)", target).end(0)
+        except AttributeError:
+            return 0
+        
+        end = firstTS
+        for reString in [r"(~12\d)", r"(~\d16)", r"(~1216)"]:
+            try:
+                end = max(re.match(reString, target[firstTS-3:]).end(0) + firstTS - 3, end)
+            except AttributeError:
+                continue
+        return end
+    
+    def _getChordNotes(self, score, caret):
+        """
+        Assumes the *caret* is pointing at a note in *score*. Returns the 
+        chord of that note, its index inside the *chord* list, and an 
+        inversion boolean.
+        """
+        chords = []
+        chordStart = max(score.rfind(" ", 0, caret), score.rfind(",", 0, caret))
+        tsOffset = self._getTimeSignatureEnd(score[chordStart:])
+        if chordStart + tsOffset <= caret:
+            chordStart += max(0, tsOffset - 1)
+        i = chordStart + 1
+        inverted = False
+        while i < len(score) and score[i] not in " ,.;:":
+            if len(chords) == 1 and score[i] == INVERTER:
+                inverted = True
+            if score[i] in NOTES:
+                if i == caret:
+                    chordIndex = len(chords)
+                chords.append(score[i])
+            i += 1
+        return (chords, chordIndex, inverted)
+    
+    def _getConsecSize(self, chord, chordIndex, noteIndex, d):
+        """
+        Returns the size of the biggest successive sequence before/after 
+        chord[chordIndex] without including it.
+        
+        - d: the direction in which the sequence is checked,
+            1: up, -1: down
+        """
+        consecutiveSeqSize = 0
+        if (chordIndex == 0 and d == -1) or (chordIndex == len(chord) - 1 and d == 1):
+            return consecutiveSeqSize
+        c = chord[:chordIndex] if d == -1 else chord[chordIndex:]
+        i = noteIndex
+        j = d
+        n = c[j] 
+        while NOTES.index(n) % 31 == i + d: # while consecutive
+            consecutiveSeqSize += 1
+            # traversing in d direction
+            i = i + d
+            j = j + d
+            if j < -chordIndex or j >= len(chord) - chordIndex:
+                return consecutiveSeqSize
+            n = c[j]
+        return consecutiveSeqSize
+    
     def _partNumber(self):
         text = self.textBox.GetValue()
         return max([n for (n, i) in self._getPartSwitches(text)]) + 1
@@ -1104,7 +1437,7 @@ class MainFrame(wx.Frame):
             format='midi', wrtpath=path,
             scoreTempo=self.tempo,
             scoreInstruments=self.instruments)
-        pygame.mixer.music.load(path)
+        mixer.music.load(path)
     
     def _getOffsetScore(self, timeElapsed, text):
         tree = scoreParser.parse(text)
@@ -1164,7 +1497,7 @@ class MainFrame(wx.Frame):
                         pass
         return m21stream
     
-    
+
 
 
 class ChangeMetaDialog(wx.Dialog):
