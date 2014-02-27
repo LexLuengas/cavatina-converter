@@ -50,6 +50,7 @@ MODIFIER_GROUPS = {
 CLEFS = "_+"
 TIMEMOD = "~"
 INVERTER = "`"
+ACCIDENTALS = "-="
 
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
@@ -654,6 +655,7 @@ class MainFrame(wx.Frame):
         self.lastCaretPosClicked = self.caretPos
         
         self.textBox.Refresh()
+        # TODO: Color all black
         self._updateColors()
         self.textBox.SetFocus()
         self.lastEvent = e.GetEventType()
@@ -771,7 +773,7 @@ class MainFrame(wx.Frame):
         
         score = self.scoreBox.GetValue()
         caret = self.scoreBox.GetCaretPosition()
-        colorStart = self.caretPos
+        colorStart = caret
         colorLength = 1
         colorAttr = rt.RichTextAttr()
         colorAttr.SetFlags(wx.TEXT_ATTR_TEXT_COLOUR)
@@ -793,6 +795,7 @@ class MainFrame(wx.Frame):
         # ===================
         # = Color Score Box =
         # ===================
+        
         def insertColorString(coloredChunk, insertionPoint=None):
             """
             Inserts the temporary color string at the end of the chord 
@@ -800,7 +803,7 @@ class MainFrame(wx.Frame):
             """
             if insertionPoint is None:
                 chordEnd = len(score) - 1
-                for s in " ,;:/":
+                for s in " ,.;:/":
                     index = score.find(s, caret)
                     if index != -1:
                         chordEnd = min(index, chordEnd)
@@ -811,41 +814,96 @@ class MainFrame(wx.Frame):
             self.scoreBox.SetInsertionPoint(caret + 1)
             return insertionPoint
         
+        
         # Cases for score[caret]:
         while True:
+            # === KEY SIGNATURE === #
+            if score[caret] in CLEFS:
+                if caret + 1 < len(score) and score[caret + 1] == " ":
+                    colorStart = caret
+                    colorLength = 2
+                    removeColorAfter = (caret + 1, caret + 3) # sum 1 to the target indices
+                    break
+                else:
+                    KSend = caret + self._getKeySignatureEnd(score[caret:])
+                    colorStart = caret
+                    colorLength = KSend - caret
+                    if KSend < len(score) and score[KSend] == " ":
+                        colorLength += 1
+                    if KSend < len(score) and score[KSend] == TIMEMOD:
+                        ghostComma =  u"\u02FD"
+                        insertionIndex = insertColorString(ghostComma, KSend)
+                        self.removeColored = (insertionIndex, 1)
+                    removeColorAfter = (colorStart + 1, colorStart + colorLength + 1)
+                    print "COLOR KS"
+                    break
+            
+            if score[caret] in ACCIDENTALS:
+                clefIndex = max([i for i in [
+                    score.rfind(CLEFS[0], 0, caret), 
+                    score.rfind(CLEFS[1], 0, caret),
+                    -2
+                    ] if i != - 1])
+                if clefIndex >= 0:
+                    KSend = clefIndex + self._getKeySignatureEnd(score[clefIndex:])
+                    if KSend > caret: # if caret is inside the last KS string
+                        colorStart = clefIndex
+                        colorLength = KSend - colorStart
+                        if clefIndex > 0 and score[clefIndex - 1] in CLEFS:
+                            colorStart += -1
+                        if score[KSend] == " ":
+                            colorLength += 1
+                        if score[KSend] == TIMEMOD:
+                            ghostComma =  u"\u02FD"
+                            insertionIndex = insertColorString(ghostComma, KSend)
+                            self.removeColored = (insertionIndex, 1)
+                        removeColorAfter = (colorStart, colorStart + colorLength) # sum 1 to the target index
+                        print "COLOR KS"
+                        break
+            
+            # === TIME SIGNATURE === #
             try: # if score[caret] is suffix of a time signature
-                if score[caret].isdigit():
+                if score[caret].isdigit(): # TODO: partial time signatures
                     tildeIndex = score.rfind("~", max(0, caret - 4), caret)
                     if tildeIndex <= 0:
                         raise ValueError
                     a = score[tildeIndex - 1]
-                    if a in "-=":
+                    if a in ACCIDENTALS: # this filters the cases when 'a' is not part of a key signature
                         reversedStr = score[max(0, tildeIndex - 8):tildeIndex][::-1]
                         if not re.match(r"([-=]*[_\+])", reversedStr):
                             raise ValueError
-                    if a in ",;:_+":
-                        if all(score[i].isdigit() for i in range(tildeIndex + 1, caret)):
-                            dontColor = True
-                            break
-                            # color time signature
-                            tsEnd = tildeIndex + self._getTimeSignatureEnd(score[tildeIndex:])
-                            # ts = score[tildeIndex:tsEnd] # TODO: case after key signature
-                            colorStart = tildeIndex - 1
-                            colorLength = tsEnd - tildeIndex + 1
+                    if a in ",;:_+" or a in ACCIDENTALS:
+                        if all(score[i].isdigit() for i in range(tildeIndex + 1, caret + 1)):
+                            if tildeIndex + 3 == len(score): # + 1 because there's always a \n at the end of the score text
+                                tsEnd = tildeIndex + 2
+                            else:
+                                tsEnd = tildeIndex + self._getTimeSignatureEnd(score[tildeIndex:])
+                            ghostComma =  u"\u02FD"
+                            coloredChunk = ghostComma + score[tildeIndex:tsEnd]
+                            insertionIndex = insertColorString(ghostComma, tildeIndex)
+                            
+                            colorStart = insertionIndex
+                            colorLength = len(coloredChunk)
+                            self.removeColored = (insertionIndex, 1) # only remove the ghost comma
+                            removeColorAfter = (colorStart, colorStart + colorLength) # color the tilde and the ghost comma
+                            print "COLOR TS"
                             break
             except ValueError:
                 pass
-        
+            
+            # === NOTES === #
             try: # if score[caret] in NOTES
                 if score[caret] in [INVERTER, TIMEMOD]:
                     reversedStr = score[:caret + 1][::-1] # include caret position
                     nounIndex = caret - re.search(r"([-=\"\'\[{\\|<`~]+)", reversedStr).end() # reverse re search
                     i = NOTES.index(score[nounIndex])
                     isModifier = True
+                    n = nounIndex
                 else:
                     i = NOTES.index(score[caret])
                     isModifier = False
-                note = score[caret]
+                    n = caret
+                note = score[n]
                 noteIndex = i % 31
                 
                 # check if the note is a floating neighbor note
@@ -868,6 +926,8 @@ class MainFrame(wx.Frame):
                         isFloating = (consecSizeAfter % 2 == 1)
                 
                 if isFloating: # if note is floating neighbor note
+                    if inverted:
+                        note += INVERTER
                     ghostNote = INVISIBLE_NOTES[noteIndex]
                     if direction == 1:
                         coloredChunk = ghostNote + note
@@ -876,8 +936,9 @@ class MainFrame(wx.Frame):
                     
                     insertionIndex = insertColorString(coloredChunk)
                     colorStart = insertionIndex
-                    colorLength = 2
+                    colorLength = len(coloredChunk)
                     self.removeColored = (colorStart, colorLength)
+                    print "COLOR NEIGHBOR NOTE"
                     break
                 
                 floatingNote = FLOATING_NOTES[noteIndex]
@@ -885,10 +946,12 @@ class MainFrame(wx.Frame):
                 colorStart = insertionIndex
                 colorLength = 1
                 self.removeColored = (colorStart, colorLength)
+                print "COLOR NOTE"
                 break
             except ValueError:
                 pass
             
+            # === DIACRITICS === #
             try: # if score[caret] in NOTE_MODIFIERS
                 modIndex = NOTE_MODIFIERS.index(score[caret])
                 reversedStr = score[:caret + 1][::-1]
@@ -912,34 +975,44 @@ class MainFrame(wx.Frame):
                 colorStart = insertionIndex
                 colorLength = len(coloredChunk)
                 self.removeColored = (colorStart, colorLength)
+                print "COLOR DIACRITIC"
                 break
             except ValueError:
                 pass
             
+            # === BARLINES === #
             if score[caret] in ",.;:": # TODO: systemic barlines
+                # double barlines:
                 if caret > 0 and score[caret - 1] == ",":
                     colorStart = caret - 1
                     colorLength = 2
-                    removeColorAfter = (colorStart, colorStart + colorLength)
+                    removeColorAfter = (colorStart + 1, colorStart + colorLength + 1)
                 elif caret + 1 < len(score) and score[caret + 1] == ",":
-                    caret = caret + 1
-                    colorStart = self.caretPos # color barline
+                    colorStart = caret # color barline
                     colorLength = 2
+                    caret = caret + 1
                     removeColorAfter = (caret, caret + colorLength)
+                else:
+                    removeColorAfter = (colorStart + 1, colorStart + colorLength + 1)
                     
                 ghostComma =  u"\u02FD"
                 insertionIndex = insertColorString(ghostComma, caret + 1)
-                # colorStart = self.caretPos; default
                 self.removeColored = (insertionIndex, 1) # remove U+02FD", which is *not* colored
+                print "COLOR BARLINE"
                 break
             
-            # else
-            if score[caret] in " `~":
+            # === UNCOLORED === #
+            if score[caret] in " /`~":
                 dontColor = True
+                if score[caret] == " ":
+                    removeColorAfter = (caret + 1, caret + 2) # TODO: fix coloring after barline & space
+                print "DONT COLOR"
                 break
             
             break
         
+        # print self.scoreBox.GetValue()
+                
         if self.removeColorAfter:
             start, end = self.removeColorAfter
             colorAttr.SetTextColour("BLACK")
@@ -1043,11 +1116,13 @@ class MainFrame(wx.Frame):
         and all(c.isdigit() for c in firstLine[tilde + 1:])):
             firstLine = firstLine[:tilde] # remove the time signature being written
         #   (end) remove time signatures strings
-        anyDigits = any(c.isdigit() for c in firstLine)
-        anyTall = (any(c in firstLine for c in [s + "`" for s in list("qwertyu")])
-            or re.search(r"`[jqwertyuJQWERTYU]\S*[wertyu]", firstLine)
-            or re.search(r"[zxcvbnmasdfghZXCVBNMASDFGH]\S*[wertyu]", firstLine))
-        if (anyDigits or anyTall) and scoreText[0] != "\n":
+        
+        # anyDigits = any(c.isdigit() for c in firstLine)
+        # anyTall = (any(c in firstLine for c in [s + "`" for s in list("qwertyuQWERTYU")])
+        #     or re.search(r"`[jqwertyuJQWERTYU]\S*[wertyu]", firstLine)
+        #     or re.search(r"[zxcvbnmasdfghZXCVBNMASDFGH]\S*[wertyu]", firstLine))
+        # if (anyDigits or anyTall) and scoreText[0] != "\n":
+        if scoreText[0] != "\n":
             scoreText = "\n" + scoreText
             self.scoreBox.SetValue(scoreText)
             spacing = rt.RichTextAttr()
@@ -1376,6 +1451,13 @@ class MainFrame(wx.Frame):
                 continue
         return end
     
+    def _getKeySignatureEnd(self, target):
+        """
+        Returns the end-index of the key signature at the beginning of 
+        the target string.
+        """
+        return re.match(r"((\+_|_\+|\+|_)[-=]*)?", target).end(0)
+    
     def _getChordNotes(self, score, caret):
         """
         Assumes the *caret* is pointing at a note in *score*. Returns the 
@@ -1414,10 +1496,10 @@ class MainFrame(wx.Frame):
         i = noteIndex
         j = d
         n = c[j] 
-        while NOTES.index(n) % 31 == i + d: # while consecutive
+        while NOTES.index(n) % 31 == i + d or NOTES.index(n) % 31 == i: # while consecutive
             consecutiveSeqSize += 1
             # traversing in d direction
-            i = i + d
+            i = i + d if NOTES.index(n) % 31 != i else i
             j = j + d
             if j < -chordIndex or j >= len(chord) - chordIndex:
                 return consecutiveSeqSize
