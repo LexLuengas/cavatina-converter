@@ -37,8 +37,9 @@ TYPES = [rt.RICHTEXT_TYPE_RTF, rt.RICHTEXT_TYPE_TEXT]
 
 # Musical raw input
 NOTES = "zxcvbnmasdfghjqwertyu1234567890ZXCVBNMASDFGHJQWERTYU!@#$%^&*()"
-FLOATING_NOTES = [eval("u\"\\u%04.x\"" % i) for i in range(592, 623)] # unicode codepoints assigned *.ft glyphs. (Glyph substitutions don't seem to work on private use area [U+E000-U+F8FF] coded glyphs.)
-INVISIBLE_NOTES = [eval("u\"\\u%04.x\"" % i) for i in range(623, 654)] # unicode codepoints assigned *.tp glyphs.
+FLOATING_NOTES = [eval("u\"\\u%04.x\"" % i) for i in range(592, 623)] # unicode codepoints of *.ft glyphs. (Glyph substitutions don't seem to work on private use area [U+E000-U+F8FF] coded glyphs.)
+INVISIBLE_NOTES = [eval("u\"\\u%04.x\"" % i) for i in range(623, 654)] # unicode codepoints of *.tp glyphs.
+FLOATING_MIN_NOTES = [eval("u\"\\u%04.x\"" % i) for i in range(654, 685)] # half-note version of *.ft glyphs
 NOTE_MODIFIERS = """-="'[{\|<"""
 MODIFIER_GROUPS = {
     0: r"-=",
@@ -67,7 +68,7 @@ class MainFrame(wx.Frame):
         self.scoreTitle = 'Untitled'
         self.composer = os.getlogin() # UNIX only
         self.instruments = ['Piano']
-        self.tempo = 80
+        self.tempo = 100
         frameTitle = "Cavatina — Untitled"
         self.SetTitle(frameTitle)
         # audio
@@ -110,7 +111,7 @@ class MainFrame(wx.Frame):
         self.topPanel = wx.Panel(self.splitter) # Text Panel
         
         self.textBox = rt.RichTextCtrl(self.topPanel,
-            style = wx.VSCROLL | wx.HSCROLL | wx.NO_BORDER | rt.RE_MULTILINE)
+            style = wx.VSCROLL | wx.HSCROLL | wx.NO_BORDER | rt.RE_MULTILINE) # wx.TRANSPARENT_WINDOW
         self.textAttr = rt.RichTextAttr()
         self._setFontStyle(self.textBox, self.textAttr,
             fontColor=wx.Colour(0, 0, 0),
@@ -358,6 +359,11 @@ class MainFrame(wx.Frame):
             self.scoreBox.Refresh()
             self.removeColored = None
         
+        if self.wasSelected and self.textBox.GetSelection()[0] == -2:
+            text = self.textBox.GetValue()
+            self.scoreBox.SetValue(text)
+            self.wasSelected = False
+        
         if self.lastCaretPos != self.caretPos and isUpdateKeyEvent:
             text = self.textBox.GetValue()
             scoreText = self.scoreBox.GetValue()
@@ -368,10 +374,7 @@ class MainFrame(wx.Frame):
                     scoreCaret = self.scoreBox.GetCaretPosition()
                     self.scoreBox.Remove(scoreCaret, scoreCaret + 1)
                 else:
-                    if not self.wasSelected:
-                        self.scoreBox.WriteText(text[(self.lastCaretPos + 1):(self.caretPos + 1)])
-                    else:
-                        self.scoreBox.SetValue(text)
+                    self.scoreBox.WriteText(text[(self.lastCaretPos + 1):(self.caretPos + 1)])
                 text = self._fixGrandStaves(text)
                 scoreText = self.scoreBox.GetValue()
                 scoreText = self._fixTextOffsets(text, scoreText)
@@ -401,11 +404,9 @@ class MainFrame(wx.Frame):
             self.lastCaretPos = self.caretPos
             self.lastTextLength = len(self.textBox.GetValue())
         
-        fr, to = self.textBox.GetSelection()
-        if fr != -2:
-            self.wasSelected = True
-        else:
-            self.wasSelected = False
+        if e.GetEventType() != ID_EVT_LEFT_UP:
+            if self.textBox.GetSelection()[0] != -2: # check for selection
+                self.wasSelected = True
         
         self.lastEvent = e.GetEventType()
         self.textBox.EndSuppressUndo()
@@ -796,6 +797,7 @@ class MainFrame(wx.Frame):
         # = Color Score Box =
         # ===================
         
+        # Helper functions:
         def insertColorString(coloredChunk, insertionPoint=None):
             """
             Inserts the temporary color string at the end of the chord 
@@ -814,6 +816,15 @@ class MainFrame(wx.Frame):
             self.scoreBox.SetInsertionPoint(caret + 1)
             return insertionPoint
         
+        def tildeNumber(noteIndex):
+            t = 0
+            i = noteIndex + 1
+            NOTE_ADJ = NOTE_MODIFIERS + TIMEMOD + INVERTER
+            while i < len(score) and score[i] in NOTE_ADJ:
+                if score[i] == TIMEMOD and t < 2:
+                    t += 1
+                i += 1
+            return t
         
         # Cases for score[caret]:
         while True:
@@ -905,13 +916,18 @@ class MainFrame(wx.Frame):
                     n = caret
                 note = score[n]
                 noteIndex = i % 31
+                noteBaseLength = 0 if i < 31 else 1 # 0: 1/8, 1: 1/4, 2: 1/2, 3: 1/1
+                tnum = tildeNumber(n)
+                if noteBaseLength == 0:
+                    tnum = max(0, tnum - 1)
                 
                 # check if the note is a floating neighbor note
                 if not isModifier:
                     chord, chordIndex, inverted = self._getChordNotes(score, caret)
                 else:
                     chord, chordIndex, inverted = self._getChordNotes(score, nounIndex)
-                direction = 1 if noteIndex < 13 else 0 # 1: up, 0: down
+                firstNoteIndex = NOTES.index(chord[0])
+                direction = 1 if firstNoteIndex < 13 else 0 # 1: up, 0: down
                 if inverted: # TODO: not working
                     direction = 1 - direction
                 
@@ -926,13 +942,15 @@ class MainFrame(wx.Frame):
                         isFloating = (consecSizeAfter % 2 == 1)
                 
                 if isFloating: # if note is floating neighbor note
-                    if inverted:
+                    if inverted or (direction == 1 and noteIndex >= 13):
                         note += INVERTER
+                    
                     ghostNote = INVISIBLE_NOTES[noteIndex]
                     if direction == 1:
                         coloredChunk = ghostNote + note
                     elif direction == 0:
                         coloredChunk = note + ghostNote
+                    coloredChunk += tnum * TIMEMOD
                     
                     insertionIndex = insertColorString(coloredChunk)
                     colorStart = insertionIndex
@@ -942,9 +960,13 @@ class MainFrame(wx.Frame):
                     break
                 
                 floatingNote = FLOATING_NOTES[noteIndex]
+                if noteBaseLength == 1 and tnum == 2:
+                    floatingNote = note + tnum * TIMEMOD
+                else:
+                    floatingNote += tnum * TIMEMOD
                 insertionIndex = insertColorString(floatingNote)
                 colorStart = insertionIndex
-                colorLength = 1
+                colorLength = len(floatingNote)
                 self.removeColored = (colorStart, colorLength)
                 print "COLOR NOTE"
                 break
