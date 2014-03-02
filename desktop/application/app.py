@@ -28,6 +28,7 @@ ID_STOP = wx.NewId()
 ID_PLAY_PAUSE = wx.NewId()
 
 ID_EVT_TEXT = 10183
+ID_EVT_KEY_UP = 10054
 ID_EVT_LEFT_UP = 10028
 ID_EVT_SASH_CHANGE = 1
 ARROW_KEYS = [wx.WXK_LEFT, wx.WXK_RIGHT, wx.WXK_UP, wx.WXK_DOWN]
@@ -349,7 +350,7 @@ class MainFrame(wx.Frame):
             self.repositionCaret = None
             
         self.caretPos = self.textBox.GetCaretPosition()
-        isUpdateKeyEvent = e.GetEventType() != wx.EVT_KEY_UP or e.GetKeyCode() in ARROW_KEYS
+        isUpdateKeyEvent = e.GetEventType() != ID_EVT_KEY_UP or e.GetKeyCode() in ARROW_KEYS
         
         if self.removeColored and self.lastCaretPos != self.caretPos:
             colorStart, colorLength = self.removeColored
@@ -361,7 +362,11 @@ class MainFrame(wx.Frame):
         
         if self.wasSelected and self.textBox.GetSelection()[0] == -2:
             text = self.textBox.GetValue()
-            self.scoreBox.SetValue(text)
+            self.scoreBox.SetValue(text) # replace all text
+            text = self._fixGrandStaves(text)
+            scoreText = self._fixTextOffsets(text, self.scoreBox.GetValue())
+            self.scoreBox.SetInsertionPoint(self.textBox.GetInsertionPoint() + 1)
+            self.lastTextLength = 0 # to avoid removal on the next text event
             self.wasSelected = False
         
         if self.lastCaretPos != self.caretPos and isUpdateKeyEvent:
@@ -398,7 +403,6 @@ class MainFrame(wx.Frame):
                 self.textBox.SetStyle((0, len(text) + 1), colorAttr)
             
             # Update information
-            # self.scoreBox.Refresh()
             # self._transferBold()
             self._updateColors()
             self.lastCaretPos = self.caretPos
@@ -774,6 +778,7 @@ class MainFrame(wx.Frame):
         
         score = self.scoreBox.GetValue()
         caret = self.scoreBox.GetCaretPosition()
+        
         colorStart = caret
         colorLength = 1
         colorAttr = rt.RichTextAttr()
@@ -797,6 +802,9 @@ class MainFrame(wx.Frame):
         # = Color Score Box =
         # ===================
         
+        if not caret < len(score):
+            return
+        
         # Helper functions:
         def insertColorString(coloredChunk, insertionPoint=None):
             """
@@ -809,7 +817,10 @@ class MainFrame(wx.Frame):
                     index = score.find(s, caret)
                     if index != -1:
                         chordEnd = min(index, chordEnd)
-                insertionPoint = chordEnd
+                if score[chordEnd:chordEnd + 2] == "..":
+                    insertionPoint = chordEnd + 2
+                else:
+                    insertionPoint = chordEnd
             
             self.scoreBox.SetInsertionPoint(insertionPoint)
             self.scoreBox.WriteText(coloredChunk) # writes before the character at the insertion point
@@ -825,6 +836,17 @@ class MainFrame(wx.Frame):
                     t += 1
                 i += 1
             return t
+        
+        def isBeamed(noteIndex):
+            beamIndex = score.find("..", noteIndex)
+            if beamIndex != -1:
+                if score[noteIndex:beamIndex].count(" ") == 1:
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        
         
         # Cases for score[caret]:
         while True:
@@ -846,7 +868,7 @@ class MainFrame(wx.Frame):
                         insertionIndex = insertColorString(ghostComma, KSend)
                         self.removeColored = (insertionIndex, 1)
                     removeColorAfter = (colorStart + 1, colorStart + colorLength + 1)
-                    print "COLOR KS"
+                    # print "COLOR KS"
                     break
             
             if score[caret] in ACCIDENTALS:
@@ -869,7 +891,7 @@ class MainFrame(wx.Frame):
                             insertionIndex = insertColorString(ghostComma, KSend)
                             self.removeColored = (insertionIndex, 1)
                         removeColorAfter = (colorStart, colorStart + colorLength) # sum 1 to the target index
-                        print "COLOR KS"
+                        # print "COLOR KS"
                         break
             
             # === TIME SIGNATURE === #
@@ -897,12 +919,16 @@ class MainFrame(wx.Frame):
                             colorLength = len(coloredChunk)
                             self.removeColored = (insertionIndex, 1) # only remove the ghost comma
                             removeColorAfter = (colorStart, colorStart + colorLength) # color the tilde and the ghost comma
-                            print "COLOR TS"
+                            # print "COLOR TS"
                             break
             except ValueError:
                 pass
             
             # === NOTES === #
+            if isBeamed(caret): # don't break beams.
+                dontColor = True # TODO: color
+                break
+            
             try: # if score[caret] in NOTES
                 if score[caret] in [INVERTER, TIMEMOD]:
                     reversedStr = score[:caret + 1][::-1] # include caret position
@@ -956,7 +982,7 @@ class MainFrame(wx.Frame):
                     colorStart = insertionIndex
                     colorLength = len(coloredChunk)
                     self.removeColored = (colorStart, colorLength)
-                    print "COLOR NEIGHBOR NOTE"
+                    # print "COLOR NEIGHBOR NOTE"
                     break
                 
                 floatingNote = FLOATING_NOTES[noteIndex]
@@ -968,7 +994,7 @@ class MainFrame(wx.Frame):
                 colorStart = insertionIndex
                 colorLength = len(floatingNote)
                 self.removeColored = (colorStart, colorLength)
-                print "COLOR NOTE"
+                # print "COLOR NOTE"
                 break
             except ValueError:
                 pass
@@ -997,13 +1023,18 @@ class MainFrame(wx.Frame):
                 colorStart = insertionIndex
                 colorLength = len(coloredChunk)
                 self.removeColored = (colorStart, colorLength)
-                print "COLOR DIACRITIC"
+                # print "COLOR DIACRITIC"
                 break
             except ValueError:
                 pass
             
             # === BARLINES === #
             if score[caret] in ",.;:": # TODO: systemic barlines
+                # beams
+                if score[caret - 1:caret + 1] == ".." or score[caret:caret + 2] == "..":
+                    dontColor = True
+                    removeColorAfter = (caret + 1, caret + 2)
+                    break
                 # double barlines:
                 if caret > 0 and score[caret - 1] == ",":
                     colorStart = caret - 1
@@ -1020,21 +1051,20 @@ class MainFrame(wx.Frame):
                 ghostComma =  u"\u02FD"
                 insertionIndex = insertColorString(ghostComma, caret + 1)
                 self.removeColored = (insertionIndex, 1) # remove U+02FD", which is *not* colored
-                print "COLOR BARLINE"
+                # print "COLOR BARLINE"
                 break
             
             # === UNCOLORED === #
             if score[caret] in " /`~":
                 dontColor = True
                 if score[caret] == " ":
-                    removeColorAfter = (caret + 1, caret + 2) # TODO: fix coloring after barline & space
-                print "DONT COLOR"
+                    removeColorAfter = (caret + 1, caret + 3) # TODO: fix coloring after barline & space
+                # print "DONT COLOR"
                 break
             
             break
-        
-        # print self.scoreBox.GetValue()
-                
+        # (end cases)
+            
         if self.removeColorAfter:
             start, end = self.removeColorAfter
             colorAttr.SetTextColour("BLACK")
