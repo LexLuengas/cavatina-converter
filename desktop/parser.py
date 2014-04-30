@@ -892,7 +892,8 @@ def parse(content):
             globalPos += len(stack[tokenIndex - 1])
         
         if token == '\n':
-            tree.append(Newline())
+            if (0 < tokenIndex < len(stack)) and stack[tokenIndex - 1] != '\n':
+                tree.append(Newline())
             continue
 
         elif token in punctuation['splitters']:

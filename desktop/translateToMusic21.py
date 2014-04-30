@@ -292,7 +292,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
         #(sustain pedal)
         #
         # A corresponding music21.spanner object is not yet implemented in the music21 library.
-        # TODO: pull cuthbertLab/music21 and implement music21.spanner.Pedal
+        # TODO: fork cuthbertLab/music21 and implement music21.spanner.Pedal
         #
         # if isinstance(structure, PedalDown):
         # if isinstance(structure, PedalUp):
@@ -372,7 +372,7 @@ def writeStream(m21stream, format='midi', wrtpath=None, scoreTitle=None, scoreCo
     scoreTitle: str
     scoreComposer: str
     scoreTempo: int
-    scoreInstrument: str
+    scoreInstruments: str
     
     Write out Music21 stream in a given format. If wrtpath is not specified
     the file is written in the current working directory (as 'untitled.ext'),

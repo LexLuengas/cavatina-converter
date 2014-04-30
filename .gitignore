@@ -5,4 +5,7 @@ web/src/js/presto.coffee
 web/src/js/src/presto.coffee
 web/src/js/_site
 desktop/io/*
+desktop/write.py
+desktop/application/PyGTK/*
+desktop/application/examples/*
 *.pyc

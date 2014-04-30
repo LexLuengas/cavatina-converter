@@ -49,9 +49,12 @@ MODIFIER_GROUPS = {
     3: r"\\|",
     4: r"<"
 }
+BARLINES = ",.;:"
+BEAM = ".."
 CLEFS = "_+"
 TIMEMOD = "~"
 INVERTER = "`"
+SYSTMOD = "\\"
 ACCIDENTALS = "-="
 
 class MainFrame(wx.Frame):
@@ -341,18 +344,8 @@ class MainFrame(wx.Frame):
         self.textBox.ProcessEvent(e)
     
     def OnTextEnter(self, e):
-        self.textBox.BeginSuppressUndo()
-        self.scoreBox.BeginSuppressUndo()
-        
-        # Post-event fixes
-        if self.repositionCaret: # TODO: reposition correction
-            self.textBox.SetInsertionPoint(self.repositionCaret)
-            self.repositionCaret = None
-            
-        self.caretPos = self.textBox.GetCaretPosition()
-        isUpdateKeyEvent = e.GetEventType() != ID_EVT_KEY_UP or e.GetKeyCode() in ARROW_KEYS
-        
-        if self.removeColored and self.lastCaretPos != self.caretPos:
+        # Helper functions:
+        def removeColored():
             colorStart, colorLength = self.removeColored
             ip = self.scoreBox.GetInsertionPoint()
             self.scoreBox.Remove(colorStart, colorStart + colorLength)
@@ -360,15 +353,32 @@ class MainFrame(wx.Frame):
             self.scoreBox.Refresh()
             self.removeColored = None
         
+        
+        self.textBox.BeginSuppressUndo()
+        self.scoreBox.BeginSuppressUndo()
+        
+        self.caretPos = self.textBox.GetCaretPosition()
+        isUpdateKeyEvent = e.GetEventType() != ID_EVT_KEY_UP or e.GetKeyCode() in ARROW_KEYS
+        
+        # Post-event fixes
+        if self.repositionCaret:
+            # fix after font change
+            self.textBox.SetInsertionPoint(self.repositionCaret)
+            self.repositionCaret = None
+            
+        if self.removeColored and self.lastCaretPos != self.caretPos:
+            removeColored()
+        
         if self.wasSelected and self.textBox.GetSelection()[0] == -2:
             text = self.textBox.GetValue()
             self.scoreBox.SetValue(text) # replace all text
-            text = self._fixGrandStaves(text)
+            text, scoreText = self._fixGrandStaves(text)
             scoreText = self._fixTextOffsets(text, self.scoreBox.GetValue())
             self.scoreBox.SetInsertionPoint(self.textBox.GetInsertionPoint() + 1)
             self.lastTextLength = 0 # to avoid removal on the next text event
             self.wasSelected = False
         
+        # Main text mirroring
         if self.lastCaretPos != self.caretPos and isUpdateKeyEvent:
             text = self.textBox.GetValue()
             scoreText = self.scoreBox.GetValue()
@@ -380,8 +390,7 @@ class MainFrame(wx.Frame):
                     self.scoreBox.Remove(scoreCaret, scoreCaret + 1)
                 else:
                     self.scoreBox.WriteText(text[(self.lastCaretPos + 1):(self.caretPos + 1)])
-                text = self._fixGrandStaves(text)
-                scoreText = self.scoreBox.GetValue()
+                text, scoreText = self._fixGrandStaves(text)
                 scoreText = self._fixTextOffsets(text, scoreText)
                 
             # Update insertion point
@@ -395,16 +404,8 @@ class MainFrame(wx.Frame):
                 self.lastCaretPos = self.lastCaretPosClicked
                 self.lastCaretPosClicked = -1
             
-            if self.caretPos - self.lastCaretPos > 1:
-                # Re-color
-                colorAttr = rt.RichTextAttr()
-                colorAttr.SetFlags(wx.TEXT_ATTR_TEXT_COLOUR)
-                colorAttr.SetTextColour("BLACK")
-                self.textBox.SetStyle((0, len(text) + 1), colorAttr)
-            
-            # Update information
-            # self._transferBold()
             self._updateColors()
+            # Update information
             self.lastCaretPos = self.caretPos
             self.lastTextLength = len(self.textBox.GetValue())
         
@@ -776,6 +777,10 @@ class MainFrame(wx.Frame):
         # procedure for such characters. If such characters were inserted, 
         # they have to be deleted on the next text event (OnTextEnter).
         
+        ###### BLOCKED
+        return
+        ######
+        
         score = self.scoreBox.GetValue()
         caret = self.scoreBox.GetCaretPosition()
         
@@ -801,9 +806,6 @@ class MainFrame(wx.Frame):
         # ===================
         # = Color Score Box =
         # ===================
-        
-        if not caret < len(score):
-            return
         
         # Helper functions:
         def insertColorString(coloredChunk, insertionPoint=None):
@@ -838,7 +840,7 @@ class MainFrame(wx.Frame):
             return t
         
         def isBeamed(noteIndex):
-            beamIndex = score.find("..", noteIndex)
+            beamIndex = score.find(BEAM, noteIndex)
             if beamIndex != -1:
                 if score[noteIndex:beamIndex].count(" ") == 1:
                     return True
@@ -1029,9 +1031,20 @@ class MainFrame(wx.Frame):
                 pass
             
             # === BARLINES === #
-            if score[caret] in ",.;:": # TODO: systemic barlines
+            if score[caret] == SYSTMOD:
+                reversedStr = score[caret-2:caret+1][::-1]
+                if re.search(r"([\\]{1,2}[,.;:])", reversedStr):
+                    dontColor = True
+                    break
+            
+            if score[caret] in BARLINES:
                 # beams
-                if score[caret - 1:caret + 1] == ".." or score[caret:caret + 2] == "..":
+                if score[caret - 1:caret + 1] == BEAM or score[caret:caret + 2] == BEAM:
+                    dontColor = True
+                    removeColorAfter = (caret + 1, caret + 2)
+                    break
+                # systemic barlines
+                if score[caret + 1] == SYSTMOD:
                     dontColor = True
                     removeColorAfter = (caret + 1, caret + 2)
                     break
@@ -1062,6 +1075,7 @@ class MainFrame(wx.Frame):
                 # print "DONT COLOR"
                 break
             
+            dontColor = True
             break
         # (end cases)
             
@@ -1077,29 +1091,8 @@ class MainFrame(wx.Frame):
         if not dontColor:
             colorAttr.SetTextColour(wx.Colour(0xF2, 0x20, 0x20, 255)) # F22020, FF7700
             self.scoreBox.SetStyle( (colorStart, colorStart + colorLength), colorAttr )
-    
-    def _transferBold(self):
-        text = self.textBox.GetValue()
-        scoreText = self.scoreBox.GetValue()
-        for i in range(0, len(text)):
-            self.textBox.SetCaretPosition(i)
-            if len(scoreText) > 0 and scoreText[0] == "\n":
-                i = i+1
-            self.scoreBox.SetSelection(i, i+1)
-            if self.textBox.IsSelectionBold():
-                if not self.scoreBox.IsSelectionBold():
-                    self.scoreBox.ApplyBoldToSelection()
-            else:
-                if self.scoreBox.IsSelectionBold():
-                    self.scoreBox.ApplyBoldToSelection()
-                    
-        self.textBox.SetCaretPosition(self.caretPos)
-        
-        if len(scoreText) > 0 and scoreText[0] == "\n":
-            self.scoreBox.SetInsertionPoint(self.textBox.GetInsertionPoint() + 1)
         else:
-            self.scoreBox.SetInsertionPoint(self.textBox.GetInsertionPoint())
-        self.scoreBox.Refresh()
+            self.scoreBox.SetStyle( (0, len(self.scoreBox.GetValue()) + 1), colorAttr ) # color all black
     
     def _fixGrandStaves(self, text):
         # Post-processing grand staffs
@@ -1117,7 +1110,7 @@ class MainFrame(wx.Frame):
                 self.scoreBox.SetValue(text)
                 break
             grandStaffIndex = text[:newLineIndex].rfind(",\\\\")
-        return text
+        return (text, self.scoreBox.GetValue())
     
     def _fixTextOffsets(self, text, scoreText):
         """

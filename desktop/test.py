@@ -189,6 +189,9 @@ class GlobalTester(unittest.TestCase):
         
     def testPedal(self):
         pass
+        #
+        # !!! Not implemented in music21 library !!!
+        #
         # s = testStrings['Pedal']
         # t = parse(s)
         # score = translateToMusic21(t)
