@@ -1,8 +1,8 @@
-# Test Suite
+# Test suite
 import unittest
-from parser import parse
+from lexer import parse
 from music21 import *
-from translateToMusic21 import translateToMusic21
+from translator import translateToMusic21
 
 testStrings = {
     'key signatures' : '+------- F F F,_-- F F F,+_= F F F,',

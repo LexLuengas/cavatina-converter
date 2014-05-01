@@ -25,7 +25,6 @@ Speed notes:
 
 '''
 from music21 import converter
-from music21 import corpus
 from music21 import environment
 
 _MOD = 'search.segment.py'
@@ -159,62 +158,6 @@ def indexScoreParts(scoreFile, *args, **kwds):
             'measureList': measureList,
             })
     return indexedList
-
-
-def indexScoreFilePaths(
-    scoreFilePaths,
-    giveUpdates=False,
-    *args,
-    **kwds
-    ):
-    '''
-    Returns a dictionary of the lists from indexScoreParts for each score in
-    scoreFilePaths
-    
-    ::
-
-        >>> searchResults = corpus.search('bwv19')
-        >>> fpsNamesOnly = sorted([searchResult.sourcePath
-        ...     for searchResult in searchResults])
-        >>> len(fpsNamesOnly)
-        9
-
-    ::
-
-        >>> scoreDict = search.segment.indexScoreFilePaths(fpsNamesOnly[2:5])
-        >>> len(scoreDict['bwv190.7.mxl'])
-        4
-
-    ::
-
-        >>> scoreDict['bwv190.7.mxl'][0]['measureList']
-        [0, 5, 11, 17, 22, 27]
-
-    ::
-
-        >>> scoreDict['bwv190.7.mxl'][0]['segmentList'][0]
-        'NNJLNOLLLJJIJLLLLNJJJIJLLJNNJL'
-    
-    '''
-    scoreDict = {}
-    scoreIndex = 0
-    totalScores = len(scoreFilePaths)
-    for filePath in scoreFilePaths:
-        shortfp = filePath.split(os.sep)[-1]
-        if giveUpdates is True:
-            print("Indexing %s (%d/%d)" % (
-                shortfp, scoreIndex, totalScores))
-        scoreIndex += 1
-        try:
-            if not os.path.isabs(filePath):
-                scoreObj = corpus.parse(filePath)
-            else:
-                scoreObj = converter.parse(filePath)
-            scoreDict[shortfp] = indexScoreParts(scoreObj, *args, **kwds)
-        except:
-            print("Failed on parse for: %s" % filePath)
-    return scoreDict
-
 
 def saveScoreDict(scoreDict, filePath=None):
     '''

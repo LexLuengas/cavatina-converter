@@ -6,6 +6,6 @@ source_dir = 'src'
 
 dir_collection = [join(source_dir, n) for n in file_names]
 
-with open('parser.py', 'w') as fout:
+with open('lexer.py', 'w') as fout:
     for line in fileinput.input(dir_collection):
         fout.write(line)

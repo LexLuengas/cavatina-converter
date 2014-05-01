@@ -51,26 +51,14 @@ import zipfile
 # import StringIO # this module is not supported in python3
 # use io.StringIO  in python 3, avail in 2.6, not 2.5
 
-from music21 import abcFormat
 from music21 import exceptions21
 from music21 import common
-from music21 import humdrum
 from music21 import stream
-from music21 import tinyNotation
-
-from music21.capella import fromCapellaXML
 
 from music21 import musedata as musedataModule
 from music21.musedata import translate as musedataTranslate
 
 from music21.musicxml import xmlHandler as musicxmlHandler
-
-
-from music21 import romanText as romanTextModule
-from music21.romanText import translate as romanTextTranslate
-
-from music21.noteworthy import binaryTranslate as noteworthyBinary # @UnresolvedImport
-from music21.noteworthy import translate as noteworthyTranslate
 
 from music21 import environment
 _MOD = 'converter.py'
@@ -271,144 +259,6 @@ class PickleFilter(object):
 #-------------------------------------------------------------------------------
 # Converters are associated classes; they are not subclasses, but most define a pareData() method, a parseFile() method, and a .stream attribute or property.
 
-
-#-------------------------------------------------------------------------------
-class ConverterHumdrum(object):
-    '''Simple class wrapper for parsing Humdrum data provided in a file or in a string.
-    '''
-
-    def __init__(self):
-        self.stream = None
-
-    #---------------------------------------------------------------------------
-    def parseData(self, humdrumString, number=None):
-        '''Open Humdrum data from a string
-
-        >>> humdata = '**kern\\n*M2/4\\n=1\\n24r\\n24g#\\n24f#\\n24e\\n24c#\\n24f\\n24r\\n24dn\\n24e-\\n24gn\\n24e-\\n24dn\\n*-'
-        >>> c = converter.ConverterHumdrum()
-        >>> s = c.parseData(humdata)
-        '''
-        self.data = humdrum.parseData(humdrumString)
-        #self.data.stream.makeNotation()
-
-        self.stream = self.data.stream
-        return self.data
-
-    def parseFile(self, filepath, number=None):
-        '''Open Humdram data from a file path.'''
-        self.data = humdrum.parseFile(filepath)
-        #self.data.stream.makeNotation()
-
-        self.stream = self.data.stream
-        return self.data
-
-#-------------------------------------------------------------------------------
-class ConverterTinyNotation(object):
-    '''Simple class wrapper for parsing TinyNotation data provided in a file or in a string.
-    '''
-
-    def __init__(self):
-        self.stream = None
-
-    #---------------------------------------------------------------------------
-    def parseData(self, tnData, number=None):
-        '''Open TinyNotation data from a string or list
-
-        >>> tnData = ["E4 r f# g=lastG trip{b-8 a g} c", "3/4"]
-        >>> c = converter.ConverterTinyNotation()
-        >>> s = c.parseData(tnData)
-        '''
-        if common.isStr(tnData):
-            tnStr = tnData
-            tnTs = None
-        else: # assume a 2 element sequence
-            tnStr = tnData[0]
-            tnTs = tnData[1]
-        self.stream = tinyNotation.TinyNotationStream(tnStr, tnTs)
-
-    def parseFile(self, fp, number=None):
-        '''Open TinyNotation data from a file path.'''
-
-        f = open(fp)
-        tnStr = f.read()
-        f.close()
-        self.stream = tinyNotation.TinyNotationStream(tnStr)
-
-class ConverterNoteworthy(object):
-    '''
-    Simple class wrapper for parsing NoteworthyComposer data provided in a file or in a string.
-
-    Gets data with the file format .nwctxt
-
-    Users should not need this routine.  The basic format is
-
-
-    >>> import os #_DOCS_HIDE
-    >>> nwcTranslatePath = common.getSourceFilePath() + os.path.sep + 'noteworthy'
-    >>> paertPath = nwcTranslatePath + os.path.sep + 'Part_OWeisheit.nwctxt' #_DOCS_HIDE
-    >>> #_DOCS_SHOW paertPath = converter.parse('d:/desktop/arvo_part_o_weisheit.nwctxt')
-    >>> paertStream = converter.parse(paertPath)
-    >>> len(paertStream.parts)
-    4
-
-    For developers: see the documentation for :meth:`parseData` and :meth:`parseFile`
-    to see the low-level usage.
-    '''
-
-    def __init__(self):
-        self.stream = None
-
-    #---------------------------------------------------------------------------
-    def parseData(self, nwcData):
-        r'''Open Noteworthy data from a string or list
-
-        >>> nwcData = "!NoteWorthyComposer(2.0)\n|AddStaff\n|Clef|Type:Treble\n|Note|Dur:Whole|Pos:1^"
-        >>> c = converter.ConverterNoteworthy()
-        >>> c.parseData(nwcData)
-        >>> c.stream.show('text')
-        {0.0} <music21.stream.Part ...>
-            {0.0} <music21.stream.Measure 0 offset=0.0>
-                {0.0} <music21.clef.TrebleClef>
-                {0.0} <music21.note.Note C>
-        '''
-        self.stream = noteworthyTranslate.NoteworthyTranslator().parseString(nwcData)
-
-
-    def parseFile(self, fp, number=None):
-        '''
-        Open Noteworthy data (as nwctxt) from a file path.
-
-
-        >>> import os #_DOCS_HIDE
-        >>> nwcTranslatePath = common.getSourceFilePath() + os.path.sep + 'noteworthy'
-        >>> filePath = nwcTranslatePath + os.path.sep + 'Part_OWeisheit.nwctxt' #_DOCS_HIDE
-        >>> #_DOCS_SHOW paertPath = converter.parse('d:/desktop/arvo_part_o_weisheit.nwctxt')
-        >>> c = converter.ConverterNoteworthy()
-        >>> c.parseFile(filePath)
-        >>> #_DOCS_SHOW c.stream.show()
-        '''
-        self.stream = noteworthyTranslate.NoteworthyTranslator().parseFile(fp)
-
-class ConverterNoteworthyBinary(object):
-    '''
-    Simple class wrapper for parsing NoteworthyComposer binary data provided in a file or in a string.
-
-    Gets data with the file format .nwc
-
-    Users should not need this routine.  Call converter.parse directly
-    '''
-
-    def __init__(self):
-        self.stream = None
-
-    #---------------------------------------------------------------------------
-    def parseData(self, nwcData):
-        self.stream = noteworthyBinary.NWCConverter().parseString(nwcData)
-
-
-    def parseFile(self, fp, number=None):
-        self.stream = noteworthyBinary.NWCConverter().parseFile(fp)
-
 #-------------------------------------------------------------------------------
 class ConverterMusicXML(object):
     '''Converter for MusicXML
@@ -572,132 +422,6 @@ class ConverterMidi(object):
 
     stream = property(_getStream)
 
-
-
-
-#-------------------------------------------------------------------------------
-class ConverterABC(object):
-    '''
-    Simple class wrapper for parsing ABC.
-    '''
-
-    def __init__(self):
-        # always create a score instance
-        self._stream = stream.Score()
-
-    def parseData(self, strData, number=None):
-        '''
-        Get ABC data, as token list, from a string representation.
-        If more than one work is defined in the ABC data, a
-        :class:`~music21.stream.Opus` object will be returned;
-        otherwise, a :class:`~music21.stream.Score` is returned.
-        '''
-        af = abcFormat.ABCFile()
-        # do not need to call open or close
-        abcHandler = af.readstr(strData, number=number)
-        # set to stream
-        if abcHandler.definesReferenceNumbers():
-            # this creates an Opus object, not a Score object
-            self._stream = abcFormat.translate.abcToStreamOpus(abcHandler,
-                number=number)
-        else: # just one work
-            abcFormat.translate.abcToStreamScore(abcHandler, self._stream)
-
-    def parseFile(self, fp, number=None):
-        '''Get MIDI data from a file path. If more than one work is defined in the ABC data, a  :class:`~music21.stream.Opus` object will be returned; otherwise, a :class:`~music21.stream.Score` is returned.
-
-        If `number` is provided, and this ABC file defines multiple works with a X: tag, just the specified work will be returned.
-        '''
-        #environLocal.printDebug(['ConverterABC.parseFile: got number', number])
-
-        af = abcFormat.ABCFile()
-        af.open(fp)
-        # returns a handler instance of parse tokens
-        abcHandler = af.read(number=number)
-        af.close()
-
-        # only create opus if multiple ref numbers
-        # are defined; if a number is given an opus will no be created
-        if abcHandler.definesReferenceNumbers():
-            # this creates a Score or Opus object, depending on if a number
-            # is given
-            self._stream = abcFormat.translate.abcToStreamOpus(abcHandler,
-                           number=number)
-        # just get a single work
-        else:
-            abcFormat.translate.abcToStreamScore(abcHandler, self._stream)
-
-    def _getStream(self):
-        return self._stream
-
-    stream = property(_getStream)
-
-
-class ConverterRomanText(object):
-    '''Simple class wrapper for parsing roman text harmonic definitions.
-    '''
-
-    def __init__(self):
-        # always create a score instance
-        self._stream = stream.Score()
-
-    def parseData(self, strData, number=None):
-        '''
-        '''
-        rtf = romanTextModule.RTFile()
-        rtHandler = rtf.readstr(strData)
-        if rtHandler.definesMovements():
-            # this re-defines Score as an Opus
-            self._stream = romanTextTranslate.romanTextToStreamOpus(rtHandler)
-        else:
-            romanTextTranslate.romanTextToStreamScore(rtHandler, self._stream)
-
-    def parseFile(self, fp, number=None):
-        '''
-        '''
-        rtf = romanTextModule.RTFile()
-        rtf.open(fp)
-        # returns a handler instance of parse tokens
-        rtHandler = rtf.read()
-        rtf.close()
-        romanTextTranslate.romanTextToStreamScore(rtHandler, self._stream)
-
-    def _getStream(self):
-        return self._stream
-
-    stream = property(_getStream)
-
-
-
-class ConverterCapella(object):
-    '''
-    Simple class wrapper for parsing Capella .capx XML files.  See capella/fromCapellaXML.
-    '''
-
-    def __init__(self):
-        self._stream = None
-
-    def parseData(self, strData, number=None):
-        '''
-        parse a data stream of uncompessed capella xml
-
-        N.B. for web parsing, it gets more complex.
-        '''
-        ci = fromCapellaXML.CapellaImporter()
-        ci.parseXMLText(strData)
-        scoreObj = ci.systemScoreFromScore(self.mainDom.documentElement)
-        partScore = ci.partScoreFromSystemScore(scoreObj)
-        self._stream = partScore
-    def parseFile(self, fp, number=None):
-        '''
-        '''
-        ci = fromCapellaXML.CapellaImporter()
-        self._stream = ci.scoreFromFile(fp)
-
-    def _getStream(self):
-        return self._stream
-
-    stream = property(_getStream)
 
 
 
@@ -1907,7 +1631,7 @@ class Test(unittest.TestCase):
 
 #-------------------------------------------------------------------------------
 # define presented order in documentation
-_DOC_ORDER = [parse, parseFile, parseData, parseURL, freeze, thaw, freezeStr, thawStr, Converter, ConverterMusicXML, ConverterHumdrum]
+_DOC_ORDER = [parse, parseFile, parseData, parseURL, freeze, thaw, freezeStr, thawStr, Converter, ConverterMusicXML]
 
 
 if __name__ == "__main__":

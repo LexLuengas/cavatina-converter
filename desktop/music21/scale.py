@@ -61,7 +61,6 @@ from music21 import pitch
 from music21 import interval
 from music21 import intervalNetwork
 from music21 import sieve
-from music21 import scala
 
 from music21 import environment
 _MOD = "scale.py"

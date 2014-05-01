@@ -1,5 +1,5 @@
 
-from parser import *
+from lexer import *
 from music21 import stream, note, chord, articulations, expressions, key, meter, bar, dynamics, repeat, spanner, layout, metadata, tempo, instrument
 
 def create_m21Note(nobj):

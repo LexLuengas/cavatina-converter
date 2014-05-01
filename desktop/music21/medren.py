@@ -27,7 +27,6 @@ from music21 import note
 from music21 import pitch
 from music21 import stream
 from music21 import tempo
-from music21 import trecento
 
 import unittest
 

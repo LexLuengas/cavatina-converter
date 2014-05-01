@@ -43,21 +43,6 @@ try:
 except ImportError:
     noPIL = True
 
-from music21 import corpus
-
-### speed up tests! move to music21 base...
-class _sharedCorpusTestObject(object):
-    sharedCache = {}
-
-sharedCacheObject = _sharedCorpusTestObject()
-
-def _getCachedCorpusFile(keyName):
-    #return corpus.parse(keyName)
-    if keyName not in sharedCacheObject.sharedCache:
-        sharedCacheObject.sharedCache[keyName] = corpus.parse(keyName)
-    return sharedCacheObject.sharedCache[keyName]
-
-
 #b.parts[0].measure(4)[2].color = 'blue'#.rightBarline = 'double'
 
 def makeLettersOnlyId(inputString):

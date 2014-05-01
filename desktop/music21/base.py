@@ -86,45 +86,6 @@ from music21 import environment
 _MOD = 'music21.base.py'
 environLocal = environment.Environment(_MOD)
 
-
-# check external dependencies and display
-_missingImport = []
-import imp
-try:
-    imp.find_module('matplotlib')
-except ImportError:
-    _missingImport.append('matplotlib')
-
-try:
-    imp.find_module('numpy')
-except ImportError:
-    _missingImport.append('numpy')
-
-try:
-    imp.find_module('scipy')
-except ImportError:
-    _missingImport.append('scipy')
-
-# used for better PNG processing in lily -- not very important
-#try:
-#    import PIL
-#except ImportError:
-#    _missingImport.append('PIL')
-
-# as this is only needed for one module, and error messages print
-# to standard io, this has been removed
-# try:
-#     import pyaudio
-# except (ImportError, SystemExit):
-#     _missingImport.append('pyaudio')
-    #sys.stderr.write('pyaudio is installed but PortAudio is not -- re-download pyaudio at http://people.csail.mit.edu/hubert/pyaudio/')
-
-if len(_missingImport) > 0:
-    if environLocal['warnings'] in [1, '1', True]:
-        environLocal.warn(common.getMissingImportStr(_missingImport),
-        header='music21:')
-
-
 # define whether weakrefs are used for storage of object locations
 WEAKREF_ACTIVE = True
 
