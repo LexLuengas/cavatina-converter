@@ -1,0 +1,15 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Word.RTF.8\shell\ConvertToMusicXML]
+@="Convert to MusicXML"
+"Position"="Bottom"
+
+[HKEY_CLASSES_ROOT\Word.RTF.8\shell\ConvertToMusicXML\command]
+@="wscript.exe \"C:\\Users\\Administrator\\Desktop\\rtf2xml.vbs\" \"%1\""
+
+[HKEY_CLASSES_ROOT\txtfile\shell\ConvertToMusicXML]
+@="Convert to MusicXML"
+"Position"="Bottom"
+
+[HKEY_CLASSES_ROOT\txtfile\shell\ConvertToMusicXML\command]
+@="wscript.exe \"C:\\Users\\Administrator\\Desktop\\rtf2xml.vbs\" \"%1\""
