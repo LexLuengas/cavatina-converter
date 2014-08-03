@@ -1,0 +1,15 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Word.RTF.8\shell\ConvertToMIDI]
+@="Convert to MIDI"
+"Position"="Bottom"
+
+[HKEY_CLASSES_ROOT\Word.RTF.8\shell\ConvertToMIDI\command]
+@="wscript.exe \"C:\\Program Files\\Cavatina\\rtf2xml.exe\" \"%1\" midi"
+
+[HKEY_CLASSES_ROOT\txtfile\shell\ConvertToMIDI]
+@="Convert to MIDI"
+"Position"="Bottom"
+
+[HKEY_CLASSES_ROOT\txtfile\shell\ConvertToMIDI\command]
+@="wscript.exe \"C:\\Program Files\\Cavatina\\rtf2xml.exe\" \"%1\" midi"

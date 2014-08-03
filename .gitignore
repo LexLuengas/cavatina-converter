@@ -1,12 +1,9 @@
+dist/*
 web/_site/*
+web/_config.yml
 web/src/js/presto.js
 web/src/js/presto.min.js
 web/src/js/presto.coffee
 web/src/js/src/presto.coffee
-web/src/js/_site
-desktop/io/*
-desktop/write.py
-desktop/application/PyGTK/*
-desktop/application/examples/*
 *.pyc
 *.DS_Store
