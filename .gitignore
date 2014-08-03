@@ -9,3 +9,4 @@ desktop/write.py
 desktop/application/PyGTK/*
 desktop/application/examples/*
 *.pyc
+*.DS_Store
