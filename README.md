@@ -5,6 +5,7 @@ Cavatina is a parser and translator for the typeface of the same name. It parses
 
 For more information about the Cavatina font visit <http://cavatinafont.com>. The [How-To](http://cavatinafont.com/howto#docs) section contains the syntax specification.
 
+Currently supported keyboard layouts are: British, British (Apple), German, Italian, Portugese (Brazil), Portugese, Portugese (Apple), Spanish, Spanish (ISO) and US (International). When in doubt, check the [Keyboard Layouts](http://cavatinafont.com/keyboard) section of the homepage.
 
 Common commands:
 
@@ -12,7 +13,7 @@ Common commands:
 
     $ python translateToMusic21.py [string] [format]
 
-Installation (desktop/cavatina)
+Installation <sub><sup>(desktop / cavatina)</sup><sub>
 ------------
 
 Double click on ``installer.command`` or do
@@ -29,7 +30,10 @@ Dependencies
 Services
 --------
 
-The *services* folder contains right-click menu shortcuts for the translator. There are installation instructions inside the folders within.
+The *services* folder contains right-click menu shortcuts for the translator.
+
+* To install the MacOS Services run ``./setup.sh`` on the same folder as the workflow folders.
+* On Windows just double click on each registry file.
 
 License
 -------
