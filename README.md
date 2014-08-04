@@ -13,8 +13,7 @@ Common commands:
 
     $ python translateToMusic21.py [string] [format]
 
-Installation <sub><sup>(desktop / cavatina)</sup><sub>
-------------
+### Installation <sub><sup>(desktop / cavatina)</sup><sub>
 
 Double click on ``installer.command`` or do
 
@@ -22,20 +21,17 @@ Double click on ``installer.command`` or do
 
 You can also install the library with pip via the usual ``pip install cavatina``.
 
-Dependencies
-------------
+### Dependencies
 
 *  music21
 
-Services
---------
+### Services
 
 The *services* folder contains right-click menu shortcuts for the translator.
 
 * To install the MacOS Services run ``./setup.sh`` on the same folder as the workflow folders.
 * On Windows just double click on each registry file.
 
-License
--------
+### License
 
 This content is &copy; 2014 Alexis Luengas and released under the GNU LGPL license <https://www.gnu.org/licenses/lgpl.html>.
