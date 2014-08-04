@@ -876,8 +876,11 @@ def tokenize(expr):
     return stack
 
 def parse(content):
+    from cavatina.language import inputTranslate
+    
     rawText, boldIndexSet = getTextAndRTFBoldRegion(content)
-    stack = tokenize(rawText)
+    usText = inputTranslate(rawText)
+    stack = tokenize(usText)
     tree = []
     current_key_signature = KeySignature(clefs['+']) #   this variable is the last defined key signature and affects all
     #                                                       succeeding note objects. If no key signature is yet defined when
@@ -1086,7 +1089,7 @@ def parse(content):
                         chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=0) )
                 
             except InvalidSymbolError:
-                if symbol == operators['prolonger']:
+                if symbol == operators['prolonger'] and len(chord_notes) > 0:
                     chord_notes[-1].increase_length_exponent()
                 elif symbol == note_dot and len(chord_notes) > 0:
                     chord_notes[-1].add_dot_length()
@@ -1099,7 +1102,7 @@ def parse(content):
                     symbol == accent_mark
                     ) and len(chord_notes) > 0):
                     chord_notes[-1].add_diacritical_mark(symbol)
-                elif symbol == operators['inverter']: # stem inversion
+                elif symbol == operators['inverter'] and len(chord_notes) > 0: # stem inversion
                     chord_notes[-1].invertStem()
                 elif symbol in simple_punctuation:
                     pass
