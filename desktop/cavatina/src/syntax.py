@@ -117,6 +117,16 @@ def tokenize(expr):
     for current in expr[1:]:
         previous = stack.pop()
         # -- group all contextually linked symbols
+        
+        if ( # pseudo-spaces
+            current in chord_set and
+            previous == punctuation['special_splitter'] and
+            stack[-1][0] in chord_set
+        ):
+            previous = stack.pop() # second previous
+            stack.append(previous + current) # omit pseudo-space
+            continue
+        
         if ( # new line
             current == 'n' and previous == '\\'
         ) or ( # quarter space
@@ -172,7 +182,7 @@ def tokenize(expr):
                 ])
             )
         ) or ( # chords
-            current in chord_set and previous[0] in chord_set
+            current in chord_set and previous[0] in chord_set # pseudo-spaces
         ) or ( # altered notes
             (   (current in all_diacritics) or
                 (current == operators['prolonger'] and not re.search('~[-=\'\"<>\[\{`]*~', previous)) or # no more than 2 '~' for each note
@@ -214,11 +224,11 @@ def tokenize(expr):
         
     return stack
 
-def parse(content):
+def parse(content, inputLanguage=None):
     from cavatina.language import inputTranslate
     
     rawText, boldIndexSet = getTextAndRTFBoldRegion(content)
-    usText = inputTranslate(rawText)
+    usText = inputTranslate(rawText, langFrom=inputLanguage)
     stack = tokenize(usText)
     tree = []
     current_key_signature = KeySignature(clefs['+']) #   this variable is the last defined key signature and affects all
@@ -330,17 +340,17 @@ def parse(content):
 
         elif token in octavation:
             if type(octavation[token]) is int:
-                tree.append ( OctavationStart(octavation[token]) )
+                tree.append( OctavationStart(octavation[token]) )
             else:
                 tree.append( OctavationEnd() )
             continue
 
         elif token[0] in dynamics_symbols:
-            tree.append ( Dynamic(dynamics[token]) )
+            tree.append( Dynamic(dynamics[token]) )
             continue
 
         elif token[0] in gradual_dynamics_symbols:
-            tree.append ( GradualDynamic(gradual_dynamics[token]) )
+            tree.append( GradualDynamic(gradual_dynamics[token]) )
             continue
 
         elif token == navigation['coda']:
@@ -438,12 +448,15 @@ def parse(content):
                     symbol in articulations_symbols or
                     symbol in ornaments_symbols or
                     (symbol == operators['inverter'] and token[symbolIndex-1] in ornaments_symbols) or # for the case of inverted ornamentation
-                    symbol == accent_mark
+                    symbol == accent_mark or
+                    symbol == tie
                     ) and len(chord_notes) > 0):
                     chord_notes[-1].add_diacritical_mark(symbol)
                 elif symbol == operators['inverter'] and len(chord_notes) > 0: # stem inversion
                     chord_notes[-1].invertStem()
-                elif symbol in simple_punctuation:
+                elif symbol in simple_punctuation: # beams
+                    pass
+                elif symbol == punctuation['special_splitter']: # pseudo-spaces
                     pass
                 else:
                     raise SyntaxException([tokenIndex, stack, rawText])

@@ -97,7 +97,7 @@ dynamics = {
 gradual_dynamics = {
     'l' : 'crescendo',
     'll' : 'crescendo',
-    'L' : 'decrescendo'
+    'l`' : 'decrescendo'
 }
 
 ornaments = {
@@ -212,9 +212,10 @@ articulations_symbols = [
 
 note_dot = '<'
 accent_mark = '>'
+tie = 'L'
 
 all_diacritics = accidentals_symbols + articulations_symbols
-all_diacritics.extend([note_dot, accent_mark])
+all_diacritics.extend([note_dot, accent_mark, tie])
 
 ornaments_symbols = [
     '[', # mordente
@@ -228,7 +229,6 @@ dynamics_symbols = [
 
 gradual_dynamics_symbols = [
     'l', # crescendo
-    'L' # decrescendo
 ]
 
 arpegio = 'P' # chord ornament
@@ -287,7 +287,7 @@ class TimeInterval(object):
 class Note(TimeInterval):
     def __init__(self, pitch, key_signature, length_exponent=0, denominator=8):
         self.pitch = pitch
-        self.stemDirection = 'up' if note_range[self.pitch] in 'zxcvbnmasdfghZXCVBNMASDFGH' else 'down'
+        self.stem_direction = 'up' if note_range[self.pitch] in 'zxcvbnmasdfghZXCVBNMASDFGH' else 'down'
         self.key_signature = key_signature
         self.set_pitch(self.pitch)
         super(Note, self).__init__(length_exponent, denominator)
@@ -354,6 +354,10 @@ class Note(TimeInterval):
         # accent
         elif mark == accent_mark:
             self.note_diacritics.append(mark)
+            
+        # tie
+        elif mark == tie:
+            self.note_diacritics.append(mark)
         
         # ornamentation
         elif (mark == operators['inverter'] and MatchIndex('^[\[|\{]$', self.note_diacritics) != None): # inversion
@@ -366,7 +370,7 @@ class Note(TimeInterval):
             self.note_diacritics.append(mark)
     
     def invertStem(self):
-        self.stemDirection = 'up' if self.stemDirection == 'down' else 'down'
+        self.stem_direction = 'up' if self.stem_direction == 'down' else 'down'
 
     def __str__(self):
         note_accidentals = [accidentals_short[d] for d in self.note_diacritics if d in accidentals_short]
@@ -374,6 +378,8 @@ class Note(TimeInterval):
         note_ornaments = [ornaments[d] for d in self.note_diacritics if d in ornaments]
         if accent_mark in self.note_diacritics:
             note_articulations.append('accent')
+        if tie in self.note_diacritics:
+            note_articulations.append('tie')
         
         return "{}{}{} [{}/{}]{}{}".format(
             self.name, ", ".join(note_accidentals), self.octave, self.length, self.denominator,
@@ -436,6 +442,9 @@ class Note(TimeInterval):
             expr.append(m21expressions.Fermata)
             
         return expr
+        
+    def is_tied(self):
+        return tie in self.note_diacritics
 
 class Chord(object):
     def __init__(self, notes, beamed=False): # a list of Note objects
@@ -778,6 +787,16 @@ def tokenize(expr):
     for current in expr[1:]:
         previous = stack.pop()
         # -- group all contextually linked symbols
+        
+        if ( # pseudo-spaces
+            current in chord_set and
+            previous == punctuation['special_splitter'] and
+            stack[-1][0] in chord_set
+        ):
+            previous = stack.pop() # second previous
+            stack.append(previous + current) # omit pseudo-space
+            continue
+        
         if ( # new line
             current == 'n' and previous == '\\'
         ) or ( # quarter space
@@ -833,7 +852,7 @@ def tokenize(expr):
                 ])
             )
         ) or ( # chords
-            current in chord_set and previous[0] in chord_set
+            current in chord_set and previous[0] in chord_set # pseudo-spaces
         ) or ( # altered notes
             (   (current in all_diacritics) or
                 (current == operators['prolonger'] and not re.search('~[-=\'\"<>\[\{`]*~', previous)) or # no more than 2 '~' for each note
@@ -875,11 +894,11 @@ def tokenize(expr):
         
     return stack
 
-def parse(content):
+def parse(content, inputLanguage=None):
     from cavatina.language import inputTranslate
     
     rawText, boldIndexSet = getTextAndRTFBoldRegion(content)
-    usText = inputTranslate(rawText)
+    usText = inputTranslate(rawText, langFrom=inputLanguage)
     stack = tokenize(usText)
     tree = []
     current_key_signature = KeySignature(clefs['+']) #   this variable is the last defined key signature and affects all
@@ -991,17 +1010,17 @@ def parse(content):
 
         elif token in octavation:
             if type(octavation[token]) is int:
-                tree.append ( OctavationStart(octavation[token]) )
+                tree.append( OctavationStart(octavation[token]) )
             else:
                 tree.append( OctavationEnd() )
             continue
 
         elif token[0] in dynamics_symbols:
-            tree.append ( Dynamic(dynamics[token]) )
+            tree.append( Dynamic(dynamics[token]) )
             continue
 
         elif token[0] in gradual_dynamics_symbols:
-            tree.append ( GradualDynamic(gradual_dynamics[token]) )
+            tree.append( GradualDynamic(gradual_dynamics[token]) )
             continue
 
         elif token == navigation['coda']:
@@ -1099,12 +1118,15 @@ def parse(content):
                     symbol in articulations_symbols or
                     symbol in ornaments_symbols or
                     (symbol == operators['inverter'] and token[symbolIndex-1] in ornaments_symbols) or # for the case of inverted ornamentation
-                    symbol == accent_mark
+                    symbol == accent_mark or
+                    symbol == tie
                     ) and len(chord_notes) > 0):
                     chord_notes[-1].add_diacritical_mark(symbol)
                 elif symbol == operators['inverter'] and len(chord_notes) > 0: # stem inversion
                     chord_notes[-1].invertStem()
-                elif symbol in simple_punctuation:
+                elif symbol in simple_punctuation: # beams
+                    pass
+                elif symbol == punctuation['special_splitter']: # pseudo-spaces
                     pass
                 else:
                     raise SyntaxException([tokenIndex, stack, rawText])

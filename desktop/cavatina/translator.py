@@ -1,12 +1,14 @@
 
 from cavatina.lexer import *
-from music21 import stream, note, chord, articulations, expressions, key, meter, bar, dynamics, repeat, spanner, layout, metadata, tempo, instrument
+from music21 import stream, note, chord, articulations, expressions, key, meter, bar, dynamics, tie, repeat, spanner, layout, metadata, tempo, instrument
 
 def create_m21Note(nobj):
     n = note.Note(nobj.get_m21name(), quarterLength=nobj.get_quarterLength())
     n.accidental = nobj.get_m21accidental()
     n.articulations = [a() for a in nobj.get_m21articulations()]
     n.expressions = [e() for e in nobj.get_m21expressions()]
+    if nobj.is_tied():
+        n.tie = tie.Tie("start")
     return n
     
 def extractMergedDiacritics(n1, n2):
@@ -63,7 +65,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
                 for nobj in structure:
                     n = create_m21Note(nobj)
                     if preserveStemDirection:
-                        n.stemDirection = nobj.stemDirection
+                        n.stemDirection = nobj.stem_direction
                     noteList.append(n)
                 
                 # Trim chord into chord voices
@@ -367,12 +369,48 @@ def translateToMusic21(tree, preserveStemDirection=False):
     
     return score
 
+def setMetadata(score, scoreTitle="Untitled", scoreComposer="Unknown Composer", scoreTempo=None, scoreInstruments=None, midiPrograms=False):
+    """
+    scoreTitle: str
+    scoreComposer: str
+    scoreTempo: int
+    scoreInstruments: list[ str ]
+    midiPrograms: bool
+    """
+    if not m21stream.metadata:
+        m21stream.insert(0.0, metadata.Metadata())
+    if scoreTitle:
+        m21stream.metadata.title = scoreTitle
+    else:
+        m21stream.metadata.title = "Untitled"
+    if scoreComposer:
+        m21stream.metadata.composer = scoreComposer
+    else:
+        m21stream.metadata.composer = "Unknown Composer"
+    if scoreTempo:
+        m21stream.insert(0, tempo.MetronomeMark(number=scoreTempo))
+    if scoreInstruments:
+        if len(scoreInstruments) == 1:
+            for p in m21stream.parts:
+                if midiPrograms:
+                    p.insert(0, instrument.instrumentFromMidiProgram(scoreInstruments[0]))
+                else:
+                    p.insert(0, instrument.fromString(scoreInstruments[0]))
+        else:
+            parts = m21stream.parts
+            for n, i in enumerate(scoreInstruments):
+                if midiPrograms:
+                    parts[n].insert(0, instrument.instrumentFromMidiProgram(i))
+                else:
+                    parts[n].insert(0, instrument.fromString(i))
+
+
 def writeStream(m21stream, format='midi', wrtpath=None, scoreTitle=None, scoreComposer=None, scoreTempo=None, scoreInstruments=None):
     """
     scoreTitle: str
     scoreComposer: str
     scoreTempo: int
-    scoreInstruments: str
+    scoreInstruments: list[ str ]
     
     Write out Music21 stream in a given format. If wrtpath is not specified
     the file is written in the current working directory (as 'untitled.ext'),
@@ -399,26 +437,12 @@ def writeStream(m21stream, format='midi', wrtpath=None, scoreTitle=None, scoreCo
         m21stream = score
     
     # Metadata
-    if not m21stream.metadata:
-        m21stream.insert(0.0, metadata.Metadata())
-    if scoreTitle:
-        m21stream.metadata.title = scoreTitle
-    else:
-        m21stream.metadata.title = "Untitled"
-    if scoreComposer:
-        m21stream.metadata.composer = scoreComposer
-    else:
-        m21stream.metadata.composer = "Unknown Composer"
-    if scoreTempo:
-        m21stream.insert(0, tempo.MetronomeMark(number=scoreTempo))
-    if scoreInstruments:
-        if len(scoreInstruments) == 1:
-            for p in m21stream.parts:
-                p.insert(0, instrument.fromString(scoreInstruments[0]))
-        else:
-            parts = m21stream.parts
-            for n, i in enumerate(scoreInstruments):
-                parts[n].insert(0, instrument.fromString(i))
+    setMetadata(m21stream,
+        scoreTitle=scoreTitle,
+        scoreComposer=scoreComposer,
+        scoreTempo=scoreTempo,
+        scoreInstruments=scoreInstruments,
+        midiPrograms=False)
                 
     m21stream.write(format, wrtpath)
     

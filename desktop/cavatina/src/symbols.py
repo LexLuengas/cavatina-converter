@@ -81,9 +81,10 @@ articulations_symbols = [
 
 note_dot = '<'
 accent_mark = '>'
+tie = 'L'
 
 all_diacritics = accidentals_symbols + articulations_symbols
-all_diacritics.extend([note_dot, accent_mark])
+all_diacritics.extend([note_dot, accent_mark, tie])
 
 ornaments_symbols = [
     '[', # mordente
@@ -97,7 +98,6 @@ dynamics_symbols = [
 
 gradual_dynamics_symbols = [
     'l', # crescendo
-    'L' # decrescendo
 ]
 
 arpegio = 'P' # chord ornament

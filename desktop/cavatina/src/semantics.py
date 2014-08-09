@@ -97,7 +97,7 @@ dynamics = {
 gradual_dynamics = {
     'l' : 'crescendo',
     'll' : 'crescendo',
-    'L' : 'decrescendo'
+    'l`' : 'decrescendo'
 }
 
 ornaments = {
