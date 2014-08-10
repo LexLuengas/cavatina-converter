@@ -369,7 +369,7 @@ def translateToMusic21(tree, preserveStemDirection=False):
     
     return score
 
-def setMetadata(score, scoreTitle="Untitled", scoreComposer="Unknown Composer", scoreTempo=None, scoreInstruments=None, midiPrograms=False):
+def setMetadata(m21stream, scoreTitle="Untitled", scoreComposer="Unknown Composer", scoreTempo=None, scoreInstruments=None, midiPrograms=False):
     """
     scoreTitle: str
     scoreComposer: str

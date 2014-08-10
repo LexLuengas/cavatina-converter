@@ -26,14 +26,13 @@ def inputTranslate(code, langFrom=None, langTo="US"):
     out = ""
     for c in code:
         try:
-            if c == " ":
+            if c == " " or c == "\n":
                 out += c
             else:   
                 i = keyLayouts[langFrom].index(c)
                 out += keyLayouts[langTo][i]
         except:
-            import sys
-            sys.exit("Wrong keyboard layout. Trying to decode character '%s' with the layout '%s'" % (c, langFrom))
+            raise KeyError("Wrong keyboard layout. Trying to decode character '%s' with the layout '%s'" % (c, langFrom))
     return out
 
 def getLayout():

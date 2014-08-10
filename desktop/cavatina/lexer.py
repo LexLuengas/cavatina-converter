@@ -687,7 +687,7 @@ class SyntaxException(SyntaxError): # shows error position
         left = max(errorIndex - 10, 0)
         right = min(errorIndex + 11, len(expr))
         token = stack[i]
-        message = 'Invalid input \'{}\' at position {}:\t{} {} {}\n{}'.format(
+        message = 'Invalid input \'{0}\' at position {1}:\t{2} {3} {4}\n{5}'.format(
             token,
             errorIndex,
             "..." if errorIndex - 10 > 0 else "   ",
