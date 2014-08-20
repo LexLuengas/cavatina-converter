@@ -4,13 +4,13 @@ import os
 keyLayouts = {
     "US"  : ur"""`1234567890-=qwertyuiop[]\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?""", # US (International)
     "DE"  : ur"""^1234567890'#qwertzuiopöü*asdfghjkl;äyxcvbnm,.-°!"§$%&/()=?ßQWERTZUIOPÖÜ+ASDFGHJKL:ÄYXCVBNM<>_""", # DE
-    "SPi" : ur"""|1234567890'¿qwertyuiop{}*asdfghjkl;ñzxcvbnm,.-°!"#$%&/()=?¡QWERTYUIOP[]+ASDFGHJKL:ÑZXCVBNM<>_""", # SP (ISO)
+    "SPh" : ur"""|1234567890'¿qwertyuiop{}*asdfghjkl;ñzxcvbnm,.-°!"#$%&/()=?¡QWERTYUIOP[]+ASDFGHJKL:ÑZXCVBNM<>_""", # SP (ISO)
     "FR"  : ur"""!&é"'(-è_çà)=azertyuiopmù°qsdfghjkl;*wxcvbn,/.³§1234567890£$AZERTYUIOPM%+QSDFGHJKL:μWXCVBN?<>²""", # FR
     "IT"  : ur"""\1234567890*+qwertyuiopùòlasdfghjk<;'zxcvbnm,.-|!"£$%&/()=èéQWERTYUIOP§çLASDFGHJK>:?ZXCVBNM°à_""", # IT
     "PTb" : ur"""'1234567890-=qwertyuiop[]lasdfghjkÇ;´zxcvbnm,./"!@#$%¨&*()_+QWERTYUIOP{}LASDFGHJKç:`ZXCVBNM<>?""", # Brazil, Win.
     "PTp" : ur"""\1234567890*+qwertyuiop«çlasdfghjk<;´zxcvbnm,.-|!"#$%&/()=?'QWERTYUIOP»ÇLASDFGHJK>:`ZXCVBNMºª_""", # Port, Win.
     "PTa" : ur"""§1234567890*+qwertyuiop~çªasdfghjkl;´zxcvbnm,.-±!"#$%&/()=?'QWERTYUIOP^ÇºASDFGHJKL:`ZXCVBNM<>_""", # Apple
-    "SP"  : ur"""º1234567890'¡qwertyuiopñç*asdfghjkl;´zxcvbnm,.-ª!"·$%&/()=?¿QWERTYUIOPÑÇ+ASDFGHJKL:¨ZXCVBNM<>_""", # SP (Apple: SPI)
+    "SPi" : ur"""º1234567890'¡qwertyuiopñç*asdfghjkl;´zxcvbnm,.-ª!"·$%&/()=?¿QWERTYUIOPÑÇ+ASDFGHJKL:¨ZXCVBNM<>_""", # SP (Apple: SPI)
     "BRw" : ur"""`1234567890~#qwertyuiop[]_asdfghjkl;'zxcvbnm,./¬!"£$%^&*()-=QWERTYUIOP{}+ASDFGHJKL:@ZXCVBNM<>?""", # Win.
     "BRa" : ur"""§1234567890-=qwertyuiop[]\asdfghjkl;'zxcvbnm,./±!@£$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?""", # Apple
 }
@@ -51,7 +51,7 @@ def getLayout():
         lang = ""
 
     # Detect keyboard layout if not set
-    if lang not in ["US", "DE", "IT", "PTa", "PTb", "PTp", "BRa", "BRw", "SP", "SPi"]:
+    if lang not in ["US", "DE", "IT", "PTa", "PTb", "PTp", "BRa", "BRw", "SPh", "SPi"]:
         try:
             lang = parse_locale(get_locale())
         except:
@@ -79,7 +79,7 @@ def parse_locale(kl):
            "U.S.": "US",
            "German": "DE",
            "Italian": "IT",
-           "Spanish": "SP",
+           "Spanish": "SPh",
            "Spanish - ISO": "SPi",
            "British": "BRa",
            "Brazilian": "PTb",
@@ -94,8 +94,8 @@ def parse_locale(kl):
            "0x4090409": "US",
            "0x4070407": "DE",
            "0x4100410": "IT",
-           "0x40a040a": "SP",
-           "0x40a0c0a": "SP",
+           "0x40a040a": "SPh",
+           "0x40a0c0a": "SPh",
            "0x80a080a": "SPi",
            "0x8090809": "BRw",
            "0x8160816": "PTp",
