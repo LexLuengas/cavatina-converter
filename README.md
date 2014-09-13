@@ -3,9 +3,9 @@ Cavatina
 
 Cavatina is a parser and translator for the typeface of the same name. It parses rich text files (.rtf) and plain text files (.txt) and can translate to MusicXML and MIDI output per [music21](https://github.com/cuthbertLab/music21).
 
-For more information about the Cavatina font visit <http://cavatinafont.com>. The [Documentation](http://cavatinafont.com/docs) page contains the syntax specification.
+For more information about the Cavatina font visit <http://cavatinafont.com>. The [Documentation](http://cavatinafont.com/docs.html) page contains the syntax specification.
 
-Currently supported keyboard layouts are: British, British (Apple), German, Italian, Portugese (Brazil), Portugese, Portugese (Apple), Spanish, Spanish (ISO) and US (International). When in doubt, check the [Keyboard Layouts](http://cavatinafont.com/keyboard) section of the homepage.
+Currently supported keyboard layouts are: British, British (Apple), German, Italian, Portugese (Brazil), Portugese, Portugese (Apple), Spanish, Spanish (ISO) and US (International). When in doubt, check the [Keyboard Layouts](http://cavatinafont.com/keyboard.html) section of the homepage.
 
 Common commands:
 
