@@ -11,7 +11,7 @@ Common commands:
 
     $ python rtf2xml.py [path] [format]
 
-    $ python translateToMusic21.py [string] [format]
+    $ python translator.py [string] [format]
 
 ### Installation <sub><sup>(desktop / cavatina)</sup><sub>
 
