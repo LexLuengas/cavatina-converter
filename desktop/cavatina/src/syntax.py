@@ -1,15 +1,15 @@
 
-#--- SYNTAX ---#       
+#--- SYNTAX ---#
 
 def get_stringPosition(index, stack, expr):
     if len(stack[index]) > 1:
         return expr.index(stack[index])
-    
+
     prevLen = 0
     for s in stack[:index]:
         prevLen += len(s)
     return prevLen
-    
+
 class SyntaxException(SyntaxError): # shows error position
     def __init__(self, infoList):
         i, stack, expr = infoList
@@ -17,20 +17,20 @@ class SyntaxException(SyntaxError): # shows error position
         left = max(errorIndex - 10, 0)
         right = min(errorIndex + 11, len(expr))
         token = stack[i]
-        message = 'Invalid input \'{0}\' at position {1}:\t{2} {3} {4}\n{5}'.format(
+        message = '\nInvalid input \'{0}\' at position {1}:\t{2} {3} {4}\n{5}'.format(
             token,
             errorIndex,
             "..." if errorIndex - 10 > 0 else "   ",
             expr[left:right],
             "..." if errorIndex + 11 < len(expr) else "   ",
-            " "*(47 + len(str(errorIndex)) + len(token)) + "\t    " + " "*(errorIndex - left) + "^")
+            " "*(30 + len(str(errorIndex)) + len(token)) + "\t    " + " "*(errorIndex - left) + "^")
         SyntaxError.__init__(self, message)
-        
+
 def get_pitch(symbol):
     for i in range(len(note_range)):
         if note_range[i] == symbol:
             return i
-    
+
     raise InvalidSymbolError
 
 def get_splitter_length(symbol):
@@ -58,7 +58,7 @@ def getTextAndRTFBoldRegion(rtf):
     fontDefIndex = rtf.find('\\fonttbl\\f0')
     if fontDefIndex == -1: # input is not in RTF format
         return [rtf, []]
-    
+
     cut1 = fontDefIndex + 48
     rtf = rtf[cut1:]
     cut2 = rtf.find('\\f0') + 3
@@ -70,7 +70,7 @@ def getTextAndRTFBoldRegion(rtf):
         rtf = '\\b' + rtf[cut3 + 5:]
     else:
         rtf = rtf[cut3 + 5:]
-    
+
     # trim off aditional formatting
     fmt = False
     rtfFiltered = ''
@@ -87,15 +87,15 @@ def getTextAndRTFBoldRegion(rtf):
                 if rtf[i+1] == ' ' or rtf[i+1] == '0':
                     rtfFiltered += '\\b'
                     fmt = False
-            elif rtf[i] == ' ': # don't parse until after the format string 
+            elif rtf[i] == ' ': # don't parse until after the format string
                 fmt = False
     rtf = rtfFiltered[:-1]
-    
+
     rawMatches = [m.start() for m in re.finditer(r'\\b0?[ \\]', rtf)]
     unpairedMatches = [x - (i*3 + i/2) for i, x in enumerate(rawMatches)]
-    
+
     txt = re.sub(r'\\b0? ', r'', rtf)
-    
+
     boldRanges = []
     i = 0
     while i*2 <= len(unpairedMatches) - 1:
@@ -104,7 +104,7 @@ def getTextAndRTFBoldRegion(rtf):
         else:
             boldRanges.append( (unpairedMatches[i*2], unpairedMatches[i*2 + 1]) )
         i += 1
-    
+
     boldIndexSet = generateBoldIndexSet(boldRanges)
     return [txt, boldIndexSet]
 
@@ -117,7 +117,7 @@ def tokenize(expr):
     for current in expr[1:]:
         previous = stack.pop()
         # -- group all contextually linked symbols
-        
+
         if ( # pseudo-spaces
             current in chord_set and
             previous == punctuation['special_splitter'] and
@@ -126,7 +126,7 @@ def tokenize(expr):
             previous = stack.pop() # second previous
             stack.append(previous + current) # omit pseudo-space
             continue
-        
+
         if ( # new line
             current == 'n' and previous == '\\'
         ) or ( # quarter space
@@ -221,12 +221,12 @@ def tokenize(expr):
         else:
             stack.append(previous)
             stack.append(current)
-        
+
     return stack
 
 def parse(content, inputLanguage=None):
     from cavatina.language import inputTranslate
-    
+
     rawText, boldIndexSet = getTextAndRTFBoldRegion(content)
     usText = inputTranslate(rawText, langFrom=inputLanguage)
     stack = tokenize(usText)
@@ -235,14 +235,14 @@ def parse(content, inputLanguage=None):
     #                                                       succeeding note objects. If no key signature is yet defined when
     #                                                       a note is entered, the G-clef without accidentals is assumed.
     globalPos = 0
-    
+
     if stack[0] == '':
         return tree
-    
+
     for tokenIndex, token in enumerate(stack):
         if tokenIndex > 0: # update globalPos
             globalPos += len(stack[tokenIndex - 1])
-        
+
         if token == '\n':
             if (0 < tokenIndex < len(stack)) and stack[tokenIndex - 1] != '\n':
                 tree.append(Newline())
@@ -302,31 +302,31 @@ def parse(content, inputLanguage=None):
         elif token == punctuation['repeat_to']:
             tree.append( RepeatTo() )
             continue
-        
+
         elif token == punctuation['long']['systemic_barline']:
             tree.append( SystemicBarline() )
             continue
-        
+
         elif token == punctuation['long']['grand_staff']:
             tree.append( GrandStaff() )
             continue
-            
+
         elif token == punctuation['long']['systemic_barline']:
             tree.append( SystemicBarline() )
             continue
-            
+
         elif token in punctuation['long']['double_systemic_barline']:
             tree.append( DoubleSystemicBarline() )
             continue
-            
+
         elif token == punctuation['long']['bold_systemic_barline']:
             tree.append( BoldSystemicBarline() )
             continue
-            
+
         elif token == punctuation['long']['long_repeat_from']:
             tree.append( LongRepeatFrom() )
             continue
-            
+
         elif token == punctuation['long']['long_repeat_to']:
             tree.append( LongRepeatTo() )
             continue
@@ -383,14 +383,18 @@ def parse(content, inputLanguage=None):
         elif token == '..': # internally used to create beams between eighth notes
             tree.append( ErrorSign() )
             continue
-        
+
+        elif token == triplet:
+            # TODO: triplet
+            continue
+
         elif token[0] in rests:
             if globalPos in boldIndexSet:
                 # Bold weight ~ 1/16 unity
                 if token[:2] == ']]': # implicit prolongation
                     tree.append ( Rest(1, denominator=16) )
                     token = token[2:]
-                    
+
                 for symbol in token:
                     if symbol == ']':
                         tree.append ( Rest(0, denominator=16) )
@@ -405,7 +409,7 @@ def parse(content, inputLanguage=None):
                 if token[:2] == ']]': # implicit prolongation
                     tree.append ( Rest(1) )
                     token = token[2:]
-                    
+
                 for symbol in token:
                     if symbol == ']':
                         tree.append ( Rest(0) )
@@ -415,7 +419,7 @@ def parse(content, inputLanguage=None):
                         tree[-1].add_dot_length()
                     elif symbol == operators['prolonger']:
                         tree[-1].increase_length_exponent()
-                
+
             continue
 
         chord_notes = []
@@ -436,7 +440,7 @@ def parse(content, inputLanguage=None):
                         chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=1) )
                     else: # eighth notes
                         chord_notes.append( Note(note_pitch, current_key_signature, length_exponent=0) )
-                
+
             except InvalidSymbolError:
                 if symbol == operators['prolonger'] and len(chord_notes) > 0:
                     chord_notes[-1].increase_length_exponent()
@@ -460,7 +464,7 @@ def parse(content, inputLanguage=None):
                     pass
                 else:
                     raise SyntaxException([tokenIndex, stack, rawText])
-        
+
         if len(chord_notes) > 0:
             tree.append( Chord(chord_notes, beamed) )
         else:

@@ -31,14 +31,14 @@ punctuation = {
         '//'
     ],
     'special_splitter': '/',
-    
+
     'barline': ',',
     'double_barline': ',,',
     'bold_double_barline': '.',
-    
+
     'repeat_from': ';',
     'repeat_to': ':',
-    
+
     'long': {
         'systemic_barline' : ',\\',
         'grand_staff' : ',\\\\',
@@ -82,6 +82,7 @@ articulations_symbols = [
 note_dot = '<'
 accent_mark = '>'
 tie = 'L'
+triplet = '?'
 
 all_diacritics = accidentals_symbols + articulations_symbols
 all_diacritics.extend([note_dot, accent_mark, tie])

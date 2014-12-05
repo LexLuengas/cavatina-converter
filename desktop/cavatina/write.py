@@ -21,12 +21,12 @@ def writeFiles(filename, outfilename, filedir=None):
         tree = parse(fin.read())
         score = translator.translateToMusic21(tree)
         translator.writeStream(score, format='text', wrtpath=filedir)
-        translator.writeStream(score, format='midi', wrtpath=filedir)
-        translator.writeStream(score, format='musicxml', wrtpath=filedir)
+        # translator.writeStream(score, format='midi', wrtpath=filedir)
+        # translator.writeStream(score, format='musicxml', wrtpath=filedir)
 
 
 if __name__ == "__main__":
-    import sys
+    import sys, os
     sys.path.append(dirname(abspath(__file__)))
 
     if len(sys.argv) > 1:
@@ -38,7 +38,7 @@ if __name__ == "__main__":
                 filedir = sys.argv[2]
             else:
                 filedir = dirname(sys.argv[1]) # Output to same directory as input file
-            outfilename = "out.txt"
+            outfilename = os.path.splitext(sys.argv[1])[0] + "-out.txt"
             writeFiles(filename, outfilename, filedir)
     else:
         print "Usage:\tpython write.py [input file path] [output directory]"
