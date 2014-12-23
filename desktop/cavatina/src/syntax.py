@@ -51,20 +51,36 @@ def generateBoldIndexSet(boldRanges):
         boldSet.extend(range(start, end))
     return boldSet
 
+def extractCavatinaString(s, fontNumber):
+    rexp = r'\\f' + fontNumber + r'(?:(?!\\f\d).)*' # e.g.: r'\\f0(?:(?!\\f0).)*'
+    cs = ''
+    for m in re.finditer(rexp, s, re.S):
+        cs += m.group()
+    return cs.rstrip('\n')
+
 def getTextAndRTFBoldRegion(rtf):
     """
     Lazy parsing of a RTF file, only extracting 'bold' formattings.
     """
-    fontDefIndex = rtf.find('\\fonttbl\\f0')
-    if fontDefIndex == -1: # input is not in RTF format
+    fontTableIndex = rtf.find('\\fonttbl')
+    if fontTableIndex == -1: # input is not in RTF format
         return [rtf, []]
 
-    cut1 = fontDefIndex + 48
+    cut0 = rtf.find('Cavatina-Regular;', fontTableIndex) - 17
+    fontNumber = rtf[cut0]
+    assert fontNumber.isdigit()
+
+    # trim off metadata
+    cut1 = rtf.find(';}', fontTableIndex)
     rtf = rtf[cut1:]
-    cut2 = rtf.find('\\f0') + 3
+    cut2 = rtf.find('\\f0')
     rtf = rtf[cut2:]
+
     rtf = re.sub(r'\\\'..', r'¿', rtf)
     rtf = re.sub(r'\\\n', r'\n', rtf)
+
+    rtf = extractCavatinaString(rtf, fontNumber)
+
     cut3 =  rtf.find('\\cf0 ')
     if '\\b' in rtf[:cut3]: # leading '\b'
         rtf = '\\b' + rtf[cut3 + 5:]
