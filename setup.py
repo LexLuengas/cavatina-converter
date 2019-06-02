@@ -1,7 +1,4 @@
 # !/usr/local/bin/python
-import ez_setup
-ez_setup.use_setuptools()
-
 import os
 from setuptools import setup, find_packages
 
@@ -19,7 +16,7 @@ setup(
     author = "Alexis Luengas Zimmer",
     author_email = "lex@cavatinafont.com",
     description = "Musical Notation Parser for Cavatina Synthax.",
-    long_description=read("README.adoc"),
+    long_description=read("README.txt"),
     license = "LGPL",
     url = "http://cavatinafont.com",
     keywords = "music notation parser converter musicxml midi",
