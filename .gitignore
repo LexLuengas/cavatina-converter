@@ -1,10 +1,4 @@
 .vscode/
 dist/*
-web/_site/*
-web/_config.yml
-web/src/js/presto.js
-web/src/js/presto.min.js
-web/src/js/presto.coffee
-web/src/js/src/presto.coffee
 *.pyc
 *.DS_Store
