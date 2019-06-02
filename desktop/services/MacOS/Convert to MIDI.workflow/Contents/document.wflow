@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>AMApplicationBuild</key>
-	<string>247.1</string>
+	<string>409</string>
 	<key>AMApplicationVersion</key>
-	<string>2.1.1</string>
+	<string>2.5</string>
 	<key>AMDocumentVersion</key>
 	<string>2</string>
 	<key>actions</key>
@@ -25,7 +25,11 @@
 					</array>
 				</dict>
 				<key>AMActionVersion</key>
-				<string>2.0</string>
+				<string>2.1.1</string>
+				<key>AMApplication</key>
+				<array>
+					<string>Finder</string>
+				</array>
 				<key>AMParameterProperties</key>
 				<dict>
 					<key>itemType</key>
@@ -61,21 +65,21 @@
 					YnBsaXN0MDDUAQIDBAUGfH1YJHZlcnNpb25Y
 					JG9iamVjdHNZJGFyY2hpdmVyVCR0b3ASAAGG
 					oK8QGgcIDxUdJygrMzc8PUJGTFFSV19kaW5x
-					cnV3VSRudWxs0wkKCwwNDl8QD05TU3VicHJl
-					ZGljYXRlc18QF05TQ29tcG91bmRQcmVkaWNh
-					dGVUeXBlViRjbGFzc4ACEAKAGdILEBESWk5T
-					Lm9iamVjdHOAGKITFIADgBTUFhcLGBkaGxxf
-					EBBOU0xlZnRFeHByZXNzaW9uXxARTlNSaWdo
+					cnV3VSRudWxs0wkKCwwNDl8QF05TQ29tcG91
+					bmRQcmVkaWNhdGVUeXBlXxAPTlNTdWJwcmVk
+					aWNhdGVzViRjbGFzcxACgAKAGdIQCxEUWk5T
+					Lm9iamVjdHOiEhOAA4AUgBjUCxYXGBkaGxxf
+					EBFOU1JpZ2h0RXhwcmVzc2lvbl8QEE5TTGVm
 					dEV4cHJlc3Npb25fEBNOU1ByZWRpY2F0ZU9w
-					ZXJhdG9ygASADoATgBHVHh8LICEiIyQlJl8Q
-					EE5TRXhwcmVzc2lvblR5cGVeTlNTZWxlY3Rv
-					ck5hbWVZTlNPcGVyYW5kW05TQXJndW1lbnRz
-					EAOABYANgAaACFx2YWx1ZUZvcktleTrSHgsp
+					ZXJhdG9ygBOADoAEgBHVHh8gIQsiIyQlJllO
+					U09wZXJhbmReTlNTZWxlY3Rvck5hbWVfEBBO
+					U0V4cHJlc3Npb25UeXBlW05TQXJndW1lbnRz
+					gAaABRADgAiADVx2YWx1ZUZvcktleTrSIAsp
 					KhABgAfSLC0uL1okY2xhc3NuYW1lWCRjbGFz
 					c2VzXxAQTlNTZWxmRXhwcmVzc2lvbqMwMTJf
 					EBBOU1NlbGZFeHByZXNzaW9uXE5TRXhwcmVz
-					c2lvblhOU09iamVjdNILEDQ1gAyhNoAJ0zge
-					Czk6O1lOU0tleVBhdGiAChAKgAtdZmlsZUV4
+					c2lvblhOU09iamVjdNIQCzQ2oTWACYAM0wsg
+					ODk6O1lOU0tleVBhdGiACxAKgApdZmlsZUV4
 					dGVuc2lvbtIsLT4/XxAcTlNLZXlQYXRoU3Bl
 					Y2lmaWVyRXhwcmVzc2lvbqNAQTJfEBxOU0tl
 					eVBhdGhTcGVjaWZpZXJFeHByZXNzaW9uXE5T
@@ -83,46 +87,42 @@
 					cmF5o0NFMldOU0FycmF50iwtR0hfEBNOU0tl
 					eVBhdGhFeHByZXNzaW9upElKSzJfEBNOU0tl
 					eVBhdGhFeHByZXNzaW9uXxAUTlNGdW5jdGlv
-					bkV4cHJlc3Npb25cTlNFeHByZXNzaW9u0x5N
-					C05PUF8QD05TQ29uc3RhbnRWYWx1ZRAAgA+A
+					bkV4cHJlc3Npb25cTlNFeHByZXNzaW9u000g
+					C05PUF8QD05TQ29uc3RhbnRWYWx1ZYAPEACA
 					EFNydGbSLC1TVF8QGU5TQ29uc3RhbnRWYWx1
 					ZUV4cHJlc3Npb26jVVYyXxAZTlNDb25zdGFu
 					dFZhbHVlRXhwcmVzc2lvblxOU0V4cHJlc3Np
-					b27VWFlaC1tcXU5eIl5OU09wZXJhdG9yVHlw
-					ZVhOU05lZ2F0ZVpOU01vZGlmaWVyWU5TT3B0
-					aW9ucxAECIAS0iwtYGFfEBtOU0VxdWFsaXR5
+					b27VC1hZWltcT10kXlpOU01vZGlmaWVyWE5T
+					TmVnYXRlWU5TT3B0aW9uc15OU09wZXJhdG9y
+					VHlwZYASCBAE0iwtYGFfEBtOU0VxdWFsaXR5
 					UHJlZGljYXRlT3BlcmF0b3KjYmMyXxAbTlNF
 					cXVhbGl0eVByZWRpY2F0ZU9wZXJhdG9yXxAT
 					TlNQcmVkaWNhdGVPcGVyYXRvctIsLWVmXxAV
 					TlNDb21wYXJpc29uUHJlZGljYXRlo2doMl8Q
 					FU5TQ29tcGFyaXNvblByZWRpY2F0ZVtOU1By
-					ZWRpY2F0ZdQWFwsYGWsbbYAEgBWAE4AX0x5N
-					C05vUIAWgBBTdHh01VhZWgtbXF1OXiIIgBLS
+					ZWRpY2F0ZdQLFhcYGWsbbYATgBWABIAX000g
+					C29PUIAWgBBTdHh01QtYWVpbXE9dJF6AEgjS
 					LC1FdqJFMtIsLXh5XxATTlNDb21wb3VuZFBy
 					ZWRpY2F0ZaN6ezJfEBNOU0NvbXBvdW5kUHJl
 					ZGljYXRlW05TUHJlZGljYXRlXxAPTlNLZXll
 					ZEFyY2hpdmVy0X5/VHJvb3SAAQAIABEAGgAj
-					AC0AMgA3AFQAWgBhAHMAjQCUAJYAmACaAJ8A
-					qgCsAK8AsQCzALwAzwDjAPkA+wD9AP8BAQEM
-					AR8BLgE4AUQBRgFIAUoBTAFOAVsBYAFiAWQB
+					AC0AMgA3AFQAWgBhAHsAjQCUAJYAmACaAJ8A
+					qgCtAK8AsQCzALwA0ADjAPkA+wD9AP8BAQEM
+					ARYBJQE4AUQBRgFIAUoBTAFOAVsBYAFiAWQB
 					aQF0AX0BkAGUAacBtAG9AcIBxAHGAcgBzwHZ
 					AdsB3QHfAe0B8gIRAhUCNAJBAkYCVQJZAmEC
 					ZgJ8AoEClwKuArsCwgLUAtYC2ALaAt4C4wL/
-					AwMDHwMsAzcDRgNPA1oDZANmA2cDaQNuA4wD
+					AwMDHwMsAzcDQgNLA1UDZANmA2cDaQNuA4wD
 					kAOuA8QDyQPhA+UD/QQJBBIEFAQWBBgEGgQh
-					BCMEJQQpBDQENQQ3BDwEPwREBFoEXgR0BIAE
+					BCMEJQQpBDQENgQ3BDwEPwREBFoEXgR0BIAE
 					kgSVBJoAAAAAAAACAQAAAAAAAACAAAAAAAAA
 					AAAAAAAAAAAEnA==
 					</data>
 				</dict>
-				<key>Application</key>
-				<array>
-					<string>Finder</string>
-				</array>
 				<key>BundleIdentifier</key>
 				<string>com.apple.Automator.Filter_Finder_Items_2</string>
 				<key>CFBundleVersion</key>
-				<string>2.0</string>
+				<string>2.1.1</string>
 				<key>CanShowSelectedItemsWhenRun</key>
 				<false/>
 				<key>CanShowWhenRun</key>
@@ -134,13 +134,13 @@
 				<key>Class Name</key>
 				<string>Filter_Finder_Items_2</string>
 				<key>InputUUID</key>
-				<string>AA359BEF-9EED-439D-9FF0-EBCD06B8CAE1</string>
+				<string>EC1FEB35-61A6-4233-8E82-3094AD8A4E34</string>
 				<key>Keywords</key>
 				<array/>
 				<key>OutputUUID</key>
-				<string>4C2BC83A-5475-447B-B2D6-4BC4FE830031</string>
+				<string>7B26F6CC-7427-4E7D-A5B9-B0CF629DE715</string>
 				<key>UUID</key>
-				<string>D55B7EF4-4FAC-4CF0-A210-F958D0AB6DA9</string>
+				<string>B0892DE8-1119-4FA7-870A-14620607DC3D</string>
 				<key>UnlocalizedApplications</key>
 				<array>
 					<string>Finder</string>
@@ -178,9 +178,9 @@
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>290.500000:426.000000</string>
+				<string>449.000000:255.000000</string>
 				<key>nibPath</key>
-				<string>/System/Library/Automator/Filter Finder Items 2.action/Contents/Resources/English.lproj/main.nib</string>
+				<string>/System/Library/Automator/Filter Finder Items 2.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
 			<key>isViewVisible</key>
 			<true/>
@@ -200,7 +200,11 @@
 					</array>
 				</dict>
 				<key>AMActionVersion</key>
-				<string>2.0.1</string>
+				<string>2.0.3</string>
+				<key>AMApplication</key>
+				<array>
+					<string>Automator</string>
+				</array>
 				<key>AMParameterProperties</key>
 				<dict>
 					<key>COMMAND_STRING</key>
@@ -234,8 +238,8 @@
 do
 	DIR=$(dirname "$f")
 	cd "$DIR"
-	PYDIR=_PYPATH_
-	_PYCMD_ $PYDIR/cavatina/rtf2xml.py "$f" "midi"
+	PYDIR=/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages
+	/Library/Frameworks/Python.framework/Versions/2.7/bin/python "$PYDIR/cavatina/rtf2xml.py" "$f" "midi"
 done</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
@@ -246,14 +250,10 @@ done</string>
 					<key>source</key>
 					<string></string>
 				</dict>
-				<key>Application</key>
-				<array>
-					<string>Automator</string>
-				</array>
 				<key>BundleIdentifier</key>
 				<string>com.apple.RunShellScript</string>
 				<key>CFBundleVersion</key>
-				<string>2.0.1</string>
+				<string>2.0.3</string>
 				<key>CanShowSelectedItemsWhenRun</key>
 				<false/>
 				<key>CanShowWhenRun</key>
@@ -265,7 +265,7 @@ done</string>
 				<key>Class Name</key>
 				<string>RunShellScriptAction</string>
 				<key>InputUUID</key>
-				<string>5171572B-5B59-4353-8FAE-207C9B3833C6</string>
+				<string>B631307D-8C7A-42C0-82B2-D665CA0FC3DB</string>
 				<key>Keywords</key>
 				<array>
 					<string>Shell</string>
@@ -275,9 +275,9 @@ done</string>
 					<string>Unix</string>
 				</array>
 				<key>OutputUUID</key>
-				<string>8703A577-256A-456C-AE83-88AAE54F818B</string>
+				<string>9DE6902B-A6F2-4EDF-8C67-E6755B9CFE66</string>
 				<key>UUID</key>
-				<string>5804715B-6B67-4D9D-A6F9-89E5FE14AC28</string>
+				<string>8B08CDBA-F5F0-4CCB-934E-599D76F3EEDC</string>
 				<key>UnlocalizedApplications</key>
 				<array>
 					<string>Automator</string>
@@ -353,7 +353,7 @@ done</string>
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>290.500000:203.000000</string>
+				<string>449.000000:438.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/English.lproj/main.nib</string>
 			</dict>
@@ -363,99 +363,14 @@ done</string>
 	</array>
 	<key>connectors</key>
 	<dict>
-		<key>75CFA314-6566-4E4B-A60E-A8674DDF3490</key>
+		<key>FAE7612E-DBE2-430E-8177-7CBF04BB6397</key>
 		<dict>
 			<key>from</key>
-			<string>D55B7EF4-4FAC-4CF0-A210-F958D0AB6DA9 - D55B7EF4-4FAC-4CF0-A210-F958D0AB6DA9</string>
+			<string>B0892DE8-1119-4FA7-870A-14620607DC3D - B0892DE8-1119-4FA7-870A-14620607DC3D</string>
 			<key>to</key>
-			<string>5804715B-6B67-4D9D-A6F9-89E5FE14AC28 - 5804715B-6B67-4D9D-A6F9-89E5FE14AC28</string>
+			<string>8B08CDBA-F5F0-4CCB-934E-599D76F3EEDC - 8B08CDBA-F5F0-4CCB-934E-599D76F3EEDC</string>
 		</dict>
 	</dict>
-	<key>state</key>
-	<dict>
-		<key>AMLogTabViewSelectedIndex</key>
-		<integer>1</integer>
-		<key>libraryState</key>
-		<dict>
-			<key>actionsMajorSplitViewState</key>
-			<dict>
-				<key>expandedPosition</key>
-				<real>236</real>
-				<key>subviewState</key>
-				<array>
-					<string>0.000000, 0.000000, 457.000000, 329.000000, NO</string>
-					<string>0.000000, 330.000000, 457.000000, 235.000000, NO</string>
-				</array>
-			</dict>
-			<key>actionsMinorSplitViewState</key>
-			<dict>
-				<key>expandedPosition</key>
-				<real>0.0</real>
-				<key>subviewState</key>
-				<array>
-					<string>0.000000, 0.000000, 171.000000, 329.000000, NO</string>
-					<string>172.000000, 0.000000, 285.000000, 329.000000, NO</string>
-				</array>
-			</dict>
-			<key>variablesMajorSplitViewState</key>
-			<dict>
-				<key>expandedPosition</key>
-				<real>0.0</real>
-				<key>subviewState</key>
-				<array>
-					<string>0.000000, 0.000000, 457.000000, 555.000000, NO</string>
-					<string>0.000000, 556.000000, 457.000000, 9.000000, NO</string>
-				</array>
-			</dict>
-			<key>variablesMinorSplitViewState</key>
-			<dict>
-				<key>expandedPosition</key>
-				<real>0.0</real>
-				<key>subviewState</key>
-				<array>
-					<string>0.000000, 0.000000, 163.000000, 555.000000, NO</string>
-					<string>164.000000, 0.000000, 293.000000, 555.000000, NO</string>
-				</array>
-			</dict>
-		</dict>
-		<key>majorSplitViewState</key>
-		<dict>
-			<key>expandedPosition</key>
-			<real>153</real>
-			<key>subviewState</key>
-			<array>
-				<string>0.000000, 0.000000, 457.000000, 610.000000, NO</string>
-				<string>458.000000, 0.000000, 596.000000, 610.000000, NO</string>
-			</array>
-		</dict>
-		<key>minorSplitViewState</key>
-		<dict>
-			<key>expandedPosition</key>
-			<real>150</real>
-			<key>subviewState</key>
-			<array>
-				<string>0.000000, 0.000000, 596.000000, 441.000000, NO</string>
-				<string>0.000000, 451.000000, 596.000000, 140.000000, NO</string>
-			</array>
-		</dict>
-		<key>windowFrame</key>
-		<string>{{82, 76}, {1053, 687}}</string>
-		<key>workflowViewScrollPosition</key>
-		<string>{{0, 0}, {581, 441}}</string>
-	</dict>
-	<key>variables</key>
-	<array>
-		<dict>
-			<key>UUID</key>
-			<string>831592F8-4462-424A-AADC-FF4418D957B2</string>
-			<key>identifier</key>
-			<string>com.apple.Automator.Variable.ShellScript</string>
-			<key>name</key>
-			<string>Script de shell</string>
-			<key>value</key>
-			<string>/bin/bash</string>
-		</dict>
-	</array>
 	<key>workflowMetaData</key>
 	<dict>
 		<key>serviceApplicationBundleID</key>
@@ -463,9 +378,11 @@ done</string>
 		<key>serviceApplicationPath</key>
 		<string>/System/Library/CoreServices/Finder.app</string>
 		<key>serviceInputTypeIdentifier</key>
-		<string>com.apple.Automator.fileSystemObject.textDocument</string>
+		<string>com.apple.Automator.fileSystemObject.document</string>
 		<key>serviceOutputTypeIdentifier</key>
 		<string>com.apple.Automator.nothing</string>
+		<key>serviceProcessesInput</key>
+		<integer>0</integer>
 		<key>workflowTypeIdentifier</key>
 		<string>com.apple.Automator.servicesMenu</string>
 	</dict>

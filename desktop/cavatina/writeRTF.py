@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import wx
 
 header = r"""{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf360
 {\fonttbl\f0\fnil\fcharset0 Cavatina-Regular;}
@@ -58,17 +57,17 @@ def writeRTF(textBox, curPos):
         if not textBox.IsSelectionBold() and wasBold:
             rtf += "\\b0 "
             wasBold = False
-            
+
         if text[i] in ["\\", "\n", "{", "}"]:
             rtf += "\\" + text[i]
         elif text[i] in notascii:
             rtf += notascii[text[i]]
         else:
-            rtf += text[i]    
+            rtf += text[i]
     rtf += "}"
     textBox.SetCaretPosition(curPos)
     return rtf
-    
+
 def writeRTFshort(centipede):
     """
     This method is for playback purposes only.
@@ -83,7 +82,7 @@ def writeRTFshort(centipede):
         if not isBold and wasBold:
             rtf += "\\b0 "
             wasBold = False
-            
+
         if s in ["\\", "\n", "{", "}"]:
             rtf += "\\" + s
         elif s in notascii:
