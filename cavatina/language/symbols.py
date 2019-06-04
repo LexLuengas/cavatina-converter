@@ -1,7 +1,4 @@
 
-
-#--- SYMBOLS ---#
-
 digits = '0123456789'
 
 note_range = ''.join([

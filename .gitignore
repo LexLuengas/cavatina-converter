@@ -1,4 +1,6 @@
 .vscode/
-dist/*
+dist/
+build/
+Cavatina.egg-info/
 *.pyc
 *.DS_Store

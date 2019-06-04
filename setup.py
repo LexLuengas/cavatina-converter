@@ -12,11 +12,12 @@ def read(fname):
 
 setup(
     name = "Cavatina",
-    version = __version__,
+    version = __version__, # pylint: disable=W0631
     author = "Alexis Luengas Zimmer",
     author_email = "lex@cavatinafont.com",
     description = "Musical Notation Parser for Cavatina Synthax.",
-    long_description=read("README.txt"),
+    long_description=read("README.md_"),
+    long_description_content_type='text/markdown',
     license = "LGPL",
     url = "http://cavatinafont.com",
     keywords = "music notation parser converter musicxml midi",

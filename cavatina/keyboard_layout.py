@@ -1,18 +1,17 @@
-# -*- coding: utf-8 -*-
 import os
 
 keyLayouts = {
-    "US"  : ur"""`1234567890-=qwertyuiop[]\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?""", # US (International)
-    "DE"  : ur"""^1234567890'#qwertzuiopöü*asdfghjkl;äyxcvbnm,.-°!"§$%&/()=?ßQWERTZUIOPÖÜ+ASDFGHJKL:ÄYXCVBNM<>_""", # DE
-    "SPh" : ur"""|1234567890'¿qwertyuiop{}*asdfghjkl;ñzxcvbnm,.-°!"#$%&/()=?¡QWERTYUIOP[]+ASDFGHJKL:ÑZXCVBNM<>_""", # SP (ISO)
-    "FR"  : ur"""!&é"'(-è_çà)=azertyuiopmù°qsdfghjkl;*wxcvbn,/.³§1234567890£$AZERTYUIOPM%+QSDFGHJKL:μWXCVBN?<>²""", # FR
-    "IT"  : ur"""\1234567890*+qwertyuiopùòlasdfghjk<;'zxcvbnm,.-|!"£$%&/()=èéQWERTYUIOP§çLASDFGHJK>:?ZXCVBNM°à_""", # IT
-    "PTb" : ur"""'1234567890-=qwertyuiop[]lasdfghjkÇ;´zxcvbnm,./"!@#$%¨&*()_+QWERTYUIOP{}LASDFGHJKç:`ZXCVBNM<>?""", # Brazil, Win.
-    "PTp" : ur"""\1234567890*+qwertyuiop«çlasdfghjk<;´zxcvbnm,.-|!"#$%&/()=?'QWERTYUIOP»ÇLASDFGHJK>:`ZXCVBNMºª_""", # Port, Win.
-    "PTa" : ur"""§1234567890*+qwertyuiop~çªasdfghjkl;´zxcvbnm,.-±!"#$%&/()=?'QWERTYUIOP^ÇºASDFGHJKL:`ZXCVBNM<>_""", # Apple
-    "SPi" : ur"""º1234567890'¡qwertyuiopñç*asdfghjkl;´zxcvbnm,.-ª!"·$%&/()=?¿QWERTYUIOPÑÇ+ASDFGHJKL:¨ZXCVBNM<>_""", # SP (Apple: SPI)
-    "BRw" : ur"""`1234567890~#qwertyuiop[]_asdfghjkl;'zxcvbnm,./¬!"£$%^&*()-=QWERTYUIOP{}+ASDFGHJKL:@ZXCVBNM<>?""", # Win.
-    "BRa" : ur"""§1234567890-=qwertyuiop[]\asdfghjkl;'zxcvbnm,./±!@£$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?""", # Apple
+    "US"  : r"""`1234567890-=qwertyuiop[]\asdfghjkl;'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?""", # US (International)
+    "DE"  : r"""^1234567890'#qwertzuiopöü*asdfghjkl;äyxcvbnm,.-°!"§$%&/()=?ßQWERTZUIOPÖÜ+ASDFGHJKL:ÄYXCVBNM<>_""", # DE
+    "SPh" : r"""|1234567890'¿qwertyuiop{}*asdfghjkl;ñzxcvbnm,.-°!"#$%&/()=?¡QWERTYUIOP[]+ASDFGHJKL:ÑZXCVBNM<>_""", # SP (ISO)
+    "FR"  : r"""!&é"'(-è_çà)=azertyuiopmù°qsdfghjkl;*wxcvbn,/.³§1234567890£$AZERTYUIOPM%+QSDFGHJKL:μWXCVBN?<>²""", # FR
+    "IT"  : r"""\1234567890*+qwertyuiopùòlasdfghjk<;'zxcvbnm,.-|!"£$%&/()=èéQWERTYUIOP§çLASDFGHJK>:?ZXCVBNM°à_""", # IT
+    "PTb" : r"""'1234567890-=qwertyuiop[]lasdfghjkÇ;´zxcvbnm,./"!@#$%¨&*()_+QWERTYUIOP{}LASDFGHJKç:`ZXCVBNM<>?""", # Brazil, Win.
+    "PTp" : r"""\1234567890*+qwertyuiop«çlasdfghjk<;´zxcvbnm,.-|!"#$%&/()=?'QWERTYUIOP»ÇLASDFGHJK>:`ZXCVBNMºª_""", # Port, Win.
+    "PTa" : r"""§1234567890*+qwertyuiop~çªasdfghjkl;´zxcvbnm,.-±!"#$%&/()=?'QWERTYUIOP^ÇºASDFGHJKL:`ZXCVBNM<>_""", # Apple
+    "SPi" : r"""º1234567890'¡qwertyuiopñç*asdfghjkl;´zxcvbnm,.-ª!"·$%&/()=?¿QWERTYUIOPÑÇ+ASDFGHJKL:¨ZXCVBNM<>_""", # SP (Apple: SPI)
+    "BRw" : r"""`1234567890~#qwertyuiop[]_asdfghjkl;'zxcvbnm,./¬!"£$%^&*()-=QWERTYUIOP{}+ASDFGHJKL:@ZXCVBNM<>?""", # Win.
+    "BRa" : r"""§1234567890-=qwertyuiop[]\asdfghjkl;'zxcvbnm,./±!@£$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?""", # Apple
 }
 
 def inputTranslate(code, langFrom=None, langTo="US"):

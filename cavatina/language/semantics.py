@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
-#--- SEMANTICS ---#
-
 scale = [
     'C', #'do'
     'D', #'re'

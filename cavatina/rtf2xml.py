@@ -2,8 +2,8 @@ if __name__ == '__main__':
     import sys, os
 
     if len(sys.argv) >= 2:
-        from cavatina.lexer import parse
-        import cavatina.translator as translator
+        from language.syntax import parse
+        import translator
 
         # input path
         filepath = sys.argv[1]
@@ -40,4 +40,4 @@ if __name__ == '__main__':
                 translator.writeStream(score, format=sys.argv[2], wrtpath=wrtpath)
 
     else:
-        print "Usage:\n\t$ python rtf2xml.py [path] [format]\nOutput path is current working directory. Available formats are musicxml (default) and midi."
+        print("Usage:\n\t$ python rtf2xml.py [path] [format]\nOutput path is current working directory. Available formats are 'musicxml' (default) and 'midi'.")

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 header = r"""{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf360
 {\fonttbl\f0\fnil\fcharset0 Cavatina-Regular;}
 {\colortbl;\red255\green255\blue255;}

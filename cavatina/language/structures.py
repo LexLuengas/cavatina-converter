@@ -1,7 +1,7 @@
 
-#--- STRUCTURES ---#
-
 import re
+from .symbols import *
+from .semantics import *
 
 class InvalidSymbolError(Exception):
     pass

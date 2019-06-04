@@ -1,8 +1,7 @@
-# Test suite
 import unittest
-from cavatina.lexer import parse
 from music21 import *
-from cavatina.translator import translateToMusic21
+from .language.syntax import parse
+from .translator import translateToMusic21
 
 testStrings = {
     'key signatures' : '+------- F F F,_-- F F F,+_= F F F,',
@@ -52,9 +51,6 @@ testStrings = {
 }
 
 class GlobalTester(unittest.TestCase):
-    def runTest(self):
-        pass
-    
     def testKeySignature(self):
         s = testStrings['key signatures']
         t = parse(s)
@@ -189,9 +185,7 @@ class GlobalTester(unittest.TestCase):
         
     def testPedal(self):
         pass
-        #
-        # !!! Not implemented in music21 library !!!
-        #
+        # NOTE: Not implemented in music21 library
         # s = testStrings['Pedal']
         # t = parse(s)
         # score = translateToMusic21(t)

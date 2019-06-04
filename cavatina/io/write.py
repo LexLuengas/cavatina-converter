@@ -1,10 +1,9 @@
-# write.py -- for testing purposes
 from os.path import dirname, abspath, join
 
-from cavatina.lexer import parse
-import cavatina.translator as translator
+from ..language.syntax import parse
+from .. import translator
 
-def writeFiles(filename, outfilename, filedir=None):
+def writeFiles(filename, outfilename, filedir=None, outputFormat='text'):
     """
     Input file format may be .txt or .rtf
     """
@@ -20,9 +19,7 @@ def writeFiles(filename, outfilename, filedir=None):
     with open(filename, "rt") as fin:
         tree = parse(fin.read())
         score = translator.translateToMusic21(tree)
-        translator.writeStream(score, format='text', wrtpath=filedir)
-        # translator.writeStream(score, format='midi', wrtpath=filedir)
-        # translator.writeStream(score, format='musicxml', wrtpath=filedir)
+        translator.writeStream(score, format=outputFormat, wrtpath=filedir)
 
 
 if __name__ == "__main__":
@@ -31,14 +28,15 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         if len(sys.argv) == 2 and sys.argv[1] == '-h':
-            print "Usage:\tpython write.py [input file path] [output directory]"
+            print("Usage:\tpython write.py [input file path] [output directory]")
         else:
             filename = sys.argv[1]
             if len(sys.argv) == 3:
                 filedir = sys.argv[2]
             else:
-                filedir = dirname(sys.argv[1]) # Output to same directory as input file
+                # Output to same directory as input file
+                filedir = dirname(sys.argv[1]) 
             outfilename = os.path.splitext(sys.argv[1])[0] + "-out.txt"
             writeFiles(filename, outfilename, filedir)
     else:
-        print "Usage:\tpython write.py [input file path] [output directory]"
+        print("Usage:\tpython write.py [input file path] [output directory]")

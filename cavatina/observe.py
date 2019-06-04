@@ -6,15 +6,15 @@ import sys
 from os.path import dirname, abspath, join
 sys.path.append(dirname(abspath(__file__)))
 
-from cavatina.write import writeFiles
+from .io.write import writeFiles
 
-iodirname = "io"
+iodirname = "out"
 
 class ioFolderHandler(FileSystemEventHandler):
     def on_modified(self, event):
         idir = join(dirname(abspath(__file__)), iodirname)
         if event.src_path == idir:
-            print "Change at " + time.strftime("%Y-%m-%d %H:%M:%S")
+            print("Change at " + time.strftime("%Y-%m-%d %H:%M:%S"))
             writeFiles("in.txt", "out.txt", iodirname)
 
 if __name__ == "__main__":
